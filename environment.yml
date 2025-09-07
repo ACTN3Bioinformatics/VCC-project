@@ -1,0 +1,25 @@
+name: vcc2025
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.9
+  - scanpy=1.9.1
+  - anndata=0.8.0
+  - pandas=1.5.3
+  - numpy=1.24.2
+  - scipy=1.10.1
+  - matplotlib=3.7.1
+  - seaborn=0.12.2
+  - scikit-learn=1.2.2
+  - pytorch=2.0.1
+  - cpuonly  # or cudatoolkit if GPU available
+  - scrublet=0.2.1
+  - jupyterlab=4.0.0
+  - ruamel.yaml=0.17.21   # for yaml parsing
+  - harmony-pytorch=0.1.4
+  - scanpy-external
+  - pip  # in case you want to add pip packages
+  - pip:
+      - scrublet
