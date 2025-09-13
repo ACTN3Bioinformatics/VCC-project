@@ -8,14 +8,16 @@ Virtual Cell Challenge 2025 - Pipeline przygotowania danych
 Pipeline służy do przetwarzania danych single-cell RNA-seq z perturbacjami CRISPR w komórkach H1-hESC.
 Celem jest przygotowanie wysokiej jakości, spójnych i zbalansowanych zestawów danych do trenowania modeli ML/AI przewidujących efekty genowych perturbacji.
 
-## Zawartość repozytorium
-- `/scripts/` - skrypty do preprocessing, integracji i walidacji danych
-- `/config/` - pliki konfiguracyjne pipeline’u
-- `/docs/` - dokumentacja szczegółowa i raporty QC
+## Struktura repozytorium i plików
+
+- `/scripts/` - skrypty pipeline, m.in. filtrowanie, balansowanie, agregacja, integracja, splitowanie, feature engineering, benchmarki
+- `/config/` - pliki konfiguracyjne do sterowania przebiegiem pipeline’u
+- `/docs/` - dokumentacja rozszerzona, raporty jakości, tutoriale
 - `/data/` - przykładowe dane wejściowe i wyjściowe
-- `/reports/` - raporty jakości i benchmarków
+- `/reports/` - wyniki, benchmarki i analizy końcowe
 
 ## Struktura pipeline’u
+
 1. QC i filtracja danych ([filter_normalize.py](./scripts/filter_normalize.py))
 2. Normalizacja i log-transformacja ([filter_normalize.py](./scripts/filter_normalize.py))
 3. Balansowanie klas perturbacji ([balance.py](./scripts/balance.py))
@@ -28,13 +30,34 @@ Celem jest przygotowanie wysokiej jakości, spójnych i zbalansowanych zestawów
 
 ---
 
-#### Dobre praktyki
+### Liczba i charakterystyka datasetów w VCC 2025
+
+Typy datasetów:
+
+| Zbiór          | Opis                                                                | Przeznaczenie                   | Uwagi dotyczące preprocessing |
+|--------------|-------------------------------------------------------------|--------------------------------|----------------------------------------|
+| Training       | ~300k scRNA-seq komórek H1-hESC z perturbacjami CRISPRi           | Trening modeli ML              | Pełny preprocessing z QC, balansowaniem, batch correction |
+| Validation     | Zbiór podobny do treningowego, niezależny                           | Walidacja pośrednia            | Analogiczny preprocessing jak training |
+| Final Test     | Zbiór z perturbacjami nieobecnymi w training i validation          | Test końcowy, unseen genes     | Minimalny preprocessing, brak balansowania, limitowana ingerencja |
+| Public         | Zbiory publiczne i zewnętrzne (Perturb-seq, CROP-seq itd.)          | Rozszerzenie treningu/pretraining | Konieczna integracja, standaryzacja, różne batch correction |
+
+
+### Różnicowanie przygotowania datasetów w pipeline
+
+Aby zapewnić odpowiednie przygotowanie każdego datasetu, pipeline stosuje **konfigurowalny profil** per zbiór, definiowany w pliku YAML: [datasets.yaml](./config/datasets.yaml).
+
+
+---
+
+### Dobre praktyki
 
 [Instrukcja do dokumentacji pipeline’u i danych](./docs/Pipeline_instr.md)
 
 Środowisko conda - [plik environment.yml](./environment.yml)
 
 Konfiguracja pipelinu - [plik config.yaml](./config/config.yaml)
+
+Konfiguracja pipelinu i profilu datasetu - [datasets.yaml](./config/datasets.yaml)
 
 ---
 
@@ -46,9 +69,9 @@ Konfiguracja pipelinu - [plik config.yaml](./config/config.yaml)
 conda env create -f environment.yml
 conda activate vcc2025
 
-### Run filtering, normalization, doublet removal and cell cycle regression
+python scripts/filter_normalize.py --dataset_name training --config config/datasets.yaml
 
-python scripts/filter_normalize.py --config config/config.yaml
+python scripts/balance.py --dataset_name training --config config/datasets.yaml
 ```
 
 ## Szczególowy opis pipeline'u

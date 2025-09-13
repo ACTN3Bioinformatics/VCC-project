@@ -1,0 +1,34 @@
+datasets:
+  training:
+    input: data/training.h5ad
+    qc_thresh:
+      min_genes: 200
+      max_mt_pct: 15
+    balance:
+      mode: min_class
+    batch_correction: harmony
+  validation:
+    input: data/validation.h5ad
+    qc_thresh:
+      min_genes: 200
+      max_mt_pct: 15
+    balance:
+      mode: min_class
+    batch_correction: harmony
+  test:
+    input: data/test.h5ad
+    qc_thresh:
+      min_genes: 50
+      max_mt_pct: 20
+    balance:
+      mode: none
+    batch_correction: harmony
+  public:
+    input: data/public_dataset.h5ad
+    qc_thresh:
+      min_genes: 200
+      max_mt_pct: 15
+    balance:
+      mode: fixed
+      target_count: 1000
+    batch_correction: harmony

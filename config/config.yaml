@@ -16,7 +16,7 @@ doublet_detection:
 cell_cycle:
   enable: true                    # Enable cell cycle phase scoring
   regress: true                   # Regress out cell cycle scores from data
-  s_phase_genes:                  # List of S phase genes (HGNC symbols)
+  s_phase_genes:                  # List of S phase genes (HGNC symbols) [from Seurat 5.3]
     - "MCM5"
     - "PCNA"
     - "TYMS"
@@ -31,8 +31,10 @@ cell_cycle:
     - "DTL"
     - "PRIM1"
     - "UHRF1"
-    - "MCM10"
-    - "TIPIN"
+    - "MLF1IP"
+    - "HELLS"
+    - "RFC2"
+    - "RPA2"
     - "NASP"
     - "RAD51AP1"
     - "GMNN"
@@ -49,11 +51,16 @@ cell_cycle:
     - "CDC6"
     - "EXO1"
     - "TIPIN"
+    - "DSCC1"
+    - "BLM"
+    - "CASP8AP2"
+    - "USP1"
+    - "CLSPN"
     - "POLA1"
     - "CHAF1B"
     - "BRIP1"
     - "E2F8"
-  g2m_phase_genes:                # List of G2/M phase genes (HGNC symbols)
+  g2m_phase_genes:                # List of G2/M phase genes (HGNC symbols) [from Seurat 5.3]
     - "HMGB2"
     - "CDK1"
     - "NUSAP1"
@@ -83,10 +90,31 @@ cell_cycle:
     - "KIF20B"
     - "HJURP"
     - "CDCA3"
+    - "HN1"
     - "CDC20"
     - "TTK"
     - "CDC25C"
     - "KIF2C"
+    - "RANGAP1"
+    - "NCAPD2"
+    - "DLGAP5"
+    - "CDCA2"
+    - "CDCA8"
+    - "ECT2"
+    - "KIF23"
+    - "HMMR"
+    - "AURKA"
+    - "PSRC1"
+    - "ANLN"
+    - "LBR"
+    - "CKAP5"
+    - "CENPE"
+    - "CTCF"
+    - "NEK2"
+    - "G2E3"
+    - "GAS2L3"
+    - "CBX5"
+    - "CENPA"
 
 normalization:
   target_sum: 10000               # Total counts normalization target
