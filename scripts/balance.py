@@ -6,12 +6,12 @@ import numpy as np
 def load_config(path: str) -> dict:
     """
     Load YAML configuration file.
-
+    
     Parameters:
-        path (str): Path to YAML config file.
-
+    - path (str): Path to the YAML configuration file.
+    
     Returns:
-        dict: Configuration dictionary.
+    - dict: Loaded configuration dictionary.
     """
     with open(path, 'r') as stream:
         return yaml.safe_load(stream)
@@ -25,28 +25,26 @@ def balance_classes(
 ) -> sc.AnnData:
     """
     Balance perturbation classes to avoid class imbalance bias.
-
-    Downsampling is applied to reduce the size of larger classes to either
-    the size of the smallest class or a fixed target size.
-
+    Performs downsampling of larger classes to either the minimum class size or a fixed target count.
+    
     Parameters:
-        adata (AnnData): Annotated data matrix with cell metadata.
-        target_key (str): Column name in adata.obs containing class labels.
-        mode (str): Balancing strategy ('min_class' or 'fixed').
-        target_count (int): Target count per class when mode='fixed'.
-        random_state (int): Seed for reproducibility.
-
+    - adata (AnnData): Annotated data matrix with cell metadata.
+    - target_key (str): Column name in adata.obs containing class labels.
+    - mode (str): Balancing strategy ('min_class' or 'fixed').
+    - target_count (int): Target cell count per class when mode='fixed'.
+    - random_state (int): Seed for reproducibility.
+    
     Returns:
-        AnnData: Subsetted AnnData object with balanced classes.
+    - AnnData: Subset AnnData object with balanced classes.
     """
     np.random.seed(random_state)
 
-    # Get sample counts per class
+    # Print class counts before balancing
     counts = adata.obs[target_key].value_counts()
     print("Sample counts per class before balancing:")
     print(counts)
 
-    # Determine balancing target count
+    # Determine downsampling target count
     if mode == 'min_class':
         target_count = counts.min()
         print(f"Balancing all classes to minimum class size: {target_count}")
@@ -54,12 +52,15 @@ def balance_classes(
         if target_count is None:
             raise ValueError("In 'fixed' mode, target_count must be provided.")
         print(f"Balancing all classes to fixed size: {target_count}")
+    elif mode == 'none':
+        print("Balancing disabled for this dataset.")
+        return adata
     else:
-        raise ValueError(f"Unknown mode '{mode}'. Supported: 'min_class', 'fixed'.")
+        raise ValueError(f"Unknown mode '{mode}'. Supported modes: 'min_class', 'fixed', 'none'.")
 
     selected_indices = []
 
-    # For each class, sample or keep whole set depending on class size
+    # For each perturbation class, sample or keep all depending on class size
     for cls, group in adata.obs.groupby(target_key):
         n_samples = len(group)
         if n_samples > target_count:
@@ -68,9 +69,10 @@ def balance_classes(
             sampled = group.index
         selected_indices.extend(sampled)
 
-    # Subset AnnData with balanced set of cells
+    # Return balanced subset
     balanced_adata = adata[selected_indices].copy()
 
+    # Print class counts after balancing
     counts_after = balanced_adata.obs[target_key].value_counts()
     print("Sample counts per class after balancing:")
     print(counts_after)
@@ -79,17 +81,17 @@ def balance_classes(
 
 def main(config_path: str):
     """
-    Main function to run class balancing based on configuration.
+    Main function to run class balancing based on configuration from file.
 
-    Arguments:
-        config_path (str): Path to YAML configuration file.
+    Parameters:
+    - config_path (str): Path to configuration YAML file.
     """
     config = load_config(config_path)
 
-    # Load AnnData object
+    # Load AnnData object specified in config
     adata = sc.read_h5ad(config['data']['input_file'])
 
-    # Parameters from config
+    # Extract balancing parameters from config
     target_key = config['balance']['target_key']
     mode = config['balance'].get('mode', 'min_class')
     target_count = config['balance'].get('target_count', None)
@@ -101,7 +103,7 @@ def main(config_path: str):
         target_key=target_key,
         mode=mode,
         target_count=target_count,
-        random_state=random_state
+        random_state=random_state,
     )
 
     # Save balanced dataset
@@ -109,7 +111,7 @@ def main(config_path: str):
     print(f"Balanced dataset saved to {config['data']['output_file']}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Balance perturbation classes in single-cell data")
+    parser = argparse.ArgumentParser(description="Balance perturbation classes in single-cell dataset")
     parser.add_argument("--config", required=True, help="Path to YAML config file")
     args = parser.parse_args()
     main(args.config)

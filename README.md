@@ -55,8 +55,6 @@ Aby zapewnić odpowiednie przygotowanie każdego datasetu, pipeline stosuje **ko
 
 Środowisko conda - [plik environment.yml](./environment.yml)
 
-Konfiguracja pipelinu - [plik config.yaml](./config/config.yaml)
-
 Konfiguracja pipelinu i profilu datasetu - [datasets.yaml](./config/datasets.yaml)
 
 ---

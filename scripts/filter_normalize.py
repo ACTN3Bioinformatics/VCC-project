@@ -1,94 +1,86 @@
 import scanpy as sc
-import anndata
-import yaml
 import argparse
+import yaml
 
-def load_config(path):
-    with open(path, 'r') as stream:
-        config = yaml.safe_load(stream)
-    return config
+def load_config(path: str) -> dict:
+    with open(path, 'r') as f:
+        return yaml.safe_load(f)
 
-def run_qc_filtering(adata, config):
+def filter_and_normalize(adata, config):
+    # Load QC params
+    qc = config.get('qc', {})
+    min_genes = qc.get('min_genes', 200)
+    max_mt_pct = qc.get('max_mt_pct', 15)
+
+    # Calculate mitochondrial metrics and overall QC
     sc.pp.calculate_qc_metrics(adata, qc_vars=['mt'], inplace=True)
 
-    # Basic filtering
-    adata = adata[adata.obs['n_genes_by_counts'] >= config['qc']['min_genes'], :]
-    adata = adata[adata.obs['pct_counts_mt'] <= config['qc']['max_mt_pct'], :]
+    # Filter cells
+    adata = adata[(adata.obs['n_genes_by_counts'] >= min_genes) &
+                  (adata.obs['pct_counts_mt'] <= max_mt_pct)].copy()
 
-    # Filter based on total counts (optional)
-    if 'min_counts' in config['qc']:
-        adata = adata[adata.obs['total_counts'] >= config['qc']['min_counts'], :]
-    if 'max_counts' in config['qc']:
-        adata = adata[adata.obs['total_counts'] <= config['qc']['max_counts'], :]
-
-    # Filter based on mitochondrial counts (optional)
-    if 'min_mt_pct' in config['qc']:
-        adata = adata[adata.obs['pct_counts_mt'] >= config['qc']['min_mt_pct'], :]
-    return adata
-
-def run_normalization(adata, config):
-    sc.pp.normalize_total(adata, target_sum=config['normalization']['target_sum'])
-    sc.pp.log1p(adata)
-    if config['normalization']['regress_vars']:
-        sc.pp.regress_out(adata, keys=config['normalization']['regress_vars'])
-    sc.pp.scale(adata)
-    return adata
-  
-def run_doublet_detection(adata, config):
-    import scrublet as scr
-    if config['doublet_detection']['enable']:
+    # Doublet detection (optional)
+    if config.get('doublet_detection', {}).get('enabled', True):
+        import scrublet as scr
         scrub = scr.Scrublet(adata.X)
         doublet_scores, predicted_doublets = scrub.scrub_doublets()
         adata.obs['doublet_score'] = doublet_scores
         adata.obs['predicted_doublet'] = predicted_doublets
-        threshold = config['doublet_detection']['score_threshold']
-        adata = adata[adata.obs['doublet_score'] < threshold]
-    return adata
+        adata = adata[~adata.obs['predicted_doublet']].copy()
 
-def regress_cell_cycle(adata, config):
-    if config['cell_cycle']['enable']:
-        # Load gene lists for cell cycle from config or default sets
-        s_genes = config['cell_cycle']['s_phase_genes']
-        g2m_genes = config['cell_cycle']['g2m_phase_genes']
+    # Normalize and log transform
+    sc.pp.normalize_total(adata, target_sum=1e4)
+    sc.pp.log1p(adata)
 
-        # Score cell cycle phases
+    # Cell cycle adjustment: none/regress/covariate
+    cell_cycle_cfg = config.get('cell_cycle', {})
+    mode = cell_cycle_cfg.get('mode', 'none')
+
+    # Load provided gene lists or fallback to Scanpy defaults
+    s_genes = cell_cycle_cfg.get('s_phase_genes')
+    g2m_genes = cell_cycle_cfg.get('g2m_phase_genes')
+
+    if s_genes is None or g2m_genes is None:
+        import scanpy as sc_inner
+        # Use Scanpy default cell cycle genes
+        from scanpy.preprocess._utils import _get_default_s_genes, _get_default_g2m_genes
+        s_genes = s_genes if s_genes else _get_default_s_genes()
+        g2m_genes = g2m_genes if g2m_genes else _get_default_g2m_genes()
+
+    if mode != 'none':
         sc.tl.score_genes_cell_cycle(adata, s_genes=s_genes, g2m_genes=g2m_genes)
 
-        # Regress out cell cycle score if enabled
-        if config['cell_cycle']['regress']:
+        if mode == 'regress':
+            # regress out cell cycle scores then scale
             sc.pp.regress_out(adata, ['S_score', 'G2M_score'])
+            if config.get('scaling', {}).get('enabled', True):
+                sc.pp.scale(adata)
+
+        elif mode == 'covariate':
+            # Do not regress, keep scores as covariates (no scaling here)
+            pass
+    else:
+        # Default scaling if enabled and no cell cycle regression
+        if config.get('scaling', {}).get('enabled', True):
             sc.pp.scale(adata)
+
     return adata
 
-def main(config_path):
-    config = load_config(config_path)
+def main():
+    parser = argparse.ArgumentParser(description="Filter and normalize VCC dataset with cell cycle options")
+    parser.add_argument("--dataset_name", required=True, help="Name of dataset")
+    parser.add_argument("--config", required=True, help="Path to YAML config with parameters")
+    args = parser.parse_args()
 
-    # Load data
-    adata = sc.read_h5ad(config['data']['input_file'])
-    print(f"Loaded data: {adata}")
+    config_all = load_config(args.config)
+    dataset_cfg = config_all['datasets'][args.dataset_name]
 
-    # QC filtering
-    adata = run_qc_filtering(adata, config)
-    print(f"After basic QC filtering: {adata}")
+    adata = sc.read_h5ad(dataset_cfg['input_file'])
+    adata_filtered = filter_and_normalize(adata, dataset_cfg)
 
-    # Normalization
-    adata = run_normalization(adata, config)
-    print(f"After normalization: {adata}")
-
-    # Doublet detection and filtering
-    adata = run_doublet_detection(adata, config)
-    print(f"After doublet filtering: {adata}")
-
-    # Cell cycle scoring and optional regression
-    adata = regress_cell_cycle(adata, config)
-    print(f"After cell cycle processing: {adata}")    
-
-    # Save processed data
-    adata.write_h5ad(config['data']['output_file'])
-    print(f"Processed data saved to {config['data']['output_file']}")
+    output_file = dataset_cfg.get('output_file', f"output/{args.dataset_name}_filtered.h5ad")
+    adata_filtered.write_h5ad(output_file)
+    print(f"Filtered and normalized data saved to: {output_file}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Filter cells, normalize, detect doublets and regress cell cycle")
-    parser.add_argument("--config", type=str, required=True, help="Path to config.yaml")
-    args = parser.parse_args()
-    main(args.config)
+    main()
