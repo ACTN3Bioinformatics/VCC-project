@@ -1,0 +1,559 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# VCC-project Demo: Exploring Perturb-seq Data\n",
+    "\n",
+    "This notebook demonstrates how to explore and analyze the demo dataset from Replogle et al. 2022.\n",
+    "\n",
+    "**Dataset**: K562 cells with CRISPRi perturbations (~10k cells, ~150 perturbations)\n",
+    "\n",
+    "**Learning objectives**:\n",
+    "1. Load and inspect processed data\n",
+    "2. Visualize QC metrics\n",
+    "3. Explore perturbation effects\n",
+    "4. Compare train/val/test splits\n",
+    "5. Analyze feature engineering results"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Setup"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import scanpy as sc\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "from pathlib import Path\n",
+    "import json\n",
+    "\n",
+    "# Scanpy settings\n",
+    "sc.settings.verbosity = 3\n",
+    "sc.settings.set_figure_params(dpi=100, facecolor='white')\n",
+    "\n",
+    "# Plot settings\n",
+    "plt.rcParams['figure.figsize'] = (10, 6)\n",
+    "sns.set_style('whitegrid')\n",
+    "\n",
+    "print(\"✓ Libraries loaded\")\n",
+    "print(f\"Scanpy version: {sc.__version__}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 1. Load Demo Data\n",
+    "\n",
+    "First, let's check if the demo data has been downloaded and processed."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Check if data exists\n",
+    "data_path = Path(\"../data_local/demo/replogle_subset.h5ad\")\n",
+    "metadata_path = Path(\"../data_local/demo/metadata.json\")\n",
+    "\n",
+    "if not data_path.exists():\n",
+    "    print(\"❌ Demo data not found!\")\n",
+    "    print(\"\\nPlease run: snakemake download_demo_data --cores 1\")\n",
+    "else:\n",
+    "    print(\"✓ Demo data found\")\n",
+    "    print(f\"File size: {data_path.stat().st_size / 1e6:.1f} MB\")\n",
+    "    \n",
+    "    # Load metadata\n",
+    "    if metadata_path.exists():\n",
+    "        with open(metadata_path, 'r') as f:\n",
+    "            metadata = json.load(f)\n",
+    "        print(\"\\nDataset Info:\")\n",
+    "        print(f\"  Source: {metadata['source']}\")\n",
+    "        print(f\"  Cells: {metadata['n_cells']:,}\")\n",
+    "        print(f\"  Genes: {metadata['n_genes']:,}\")\n",
+    "        print(f\"  Perturbations: {metadata['n_perturbations']}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Load the data\n",
+    "adata = sc.read_h5ad(data_path)\n",
+    "print(adata)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 2. Explore Data Structure"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Cell metadata\n",
+    "print(\"Cell metadata columns:\")\n",
+    "print(adata.obs.columns.tolist())\n",
+    "print(\"\\nFirst few cells:\")\n",
+    "adata.obs.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Gene metadata\n",
+    "print(\"Gene metadata columns:\")\n",
+    "print(adata.var.columns.tolist())\n",
+    "print(\"\\nFirst few genes:\")\n",
+    "adata.var.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 3. QC Metrics Visualization"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Check if QC metrics exist\n",
+    "if 'n_genes_by_counts' not in adata.obs.columns:\n",
+    "    print(\"Computing QC metrics...\")\n",
+    "    sc.pp.calculate_qc_metrics(adata, qc_vars=['mt'], percent_top=None, log1p=False, inplace=True)\n",
+    "else:\n",
+    "    print(\"✓ QC metrics already computed\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Violin plots of QC metrics\n",
+    "fig, axes = plt.subplots(1, 3, figsize=(15, 4))\n",
+    "\n",
+    "# Genes per cell\n",
+    "axes[0].hist(adata.obs['n_genes_by_counts'], bins=50, color='steelblue', alpha=0.7)\n",
+    "axes[0].set_xlabel('Genes per cell')\n",
+    "axes[0].set_ylabel('Number of cells')\n",
+    "axes[0].set_title('Gene Detection')\n",
+    "axes[0].axvline(200, color='red', linestyle='--', label='min_genes=200')\n",
+    "axes[0].axvline(6000, color='red', linestyle='--', label='max_genes=6000')\n",
+    "axes[0].legend()\n",
+    "\n",
+    "# UMI counts\n",
+    "axes[1].hist(adata.obs['total_counts'], bins=50, color='coral', alpha=0.7)\n",
+    "axes[1].set_xlabel('Total UMI counts')\n",
+    "axes[1].set_ylabel('Number of cells')\n",
+    "axes[1].set_title('Sequencing Depth')\n",
+    "\n",
+    "# Mitochondrial content\n",
+    "axes[2].hist(adata.obs['pct_counts_mt'], bins=50, color='forestgreen', alpha=0.7)\n",
+    "axes[2].set_xlabel('Mitochondrial %')\n",
+    "axes[2].set_ylabel('Number of cells')\n",
+    "axes[2].set_title('Cell Health')\n",
+    "axes[2].axvline(15, color='red', linestyle='--', label='max_pct_mt=15%')\n",
+    "axes[2].legend()\n",
+    "\n",
+    "plt.tight_layout()\n",
+    "plt.show()\n",
+    "\n",
+    "# Print statistics\n",
+    "print(\"\\nQC Statistics:\")\n",
+    "print(f\"Genes per cell: {adata.obs['n_genes_by_counts'].median():.0f} (median)\")\n",
+    "print(f\"UMI counts: {adata.obs['total_counts'].median():.0f} (median)\")\n",
+    "print(f\"MT content: {adata.obs['pct_counts_mt'].median():.2f}% (median)\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 4. Perturbation Analysis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Find perturbation column\n",
+    "possible_keys = ['gene', 'target_gene', 'target_gene_name', 'perturbation', 'gene_symbol']\n",
+    "pert_key = None\n",
+    "for key in possible_keys:\n",
+    "    if key in adata.obs.columns:\n",
+    "        pert_key = key\n",
+    "        break\n",
+    "\n",
+    "if pert_key:\n",
+    "    print(f\"✓ Found perturbation column: {pert_key}\")\n",
+    "    \n",
+    "    # Perturbation distribution\n",
+    "    pert_counts = adata.obs[pert_key].value_counts()\n",
+    "    print(f\"\\nNumber of perturbations: {len(pert_counts)}\")\n",
+    "    print(f\"Cells per perturbation: {pert_counts.mean():.1f} ± {pert_counts.std():.1f}\")\n",
+    "    print(f\"Range: {pert_counts.min()} - {pert_counts.max()} cells\")\n",
+    "else:\n",
+    "    print(\"⚠ Could not find perturbation column\")\n",
+    "    print(f\"Available columns: {adata.obs.columns.tolist()}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Visualize perturbation distribution\n",
+    "if pert_key:\n",
+    "    fig, axes = plt.subplots(1, 2, figsize=(14, 5))\n",
+    "    \n",
+    "    # Histogram\n",
+    "    axes[0].hist(pert_counts.values, bins=30, color='steelblue', alpha=0.7, edgecolor='black')\n",
+    "    axes[0].set_xlabel('Cells per perturbation')\n",
+    "    axes[0].set_ylabel('Number of perturbations')\n",
+    "    axes[0].set_title('Distribution of Cells per Perturbation')\n",
+    "    axes[0].axvline(100, color='red', linestyle='--', label='Target: 100 cells')\n",
+    "    axes[0].legend()\n",
+    "    \n",
+    "    # Top 20 perturbations\n",
+    "    top20 = pert_counts.head(20)\n",
+    "    axes[1].barh(range(len(top20)), top20.values, color='coral')\n",
+    "    axes[1].set_yticks(range(len(top20)))\n",
+    "    axes[1].set_yticklabels(top20.index)\n",
+    "    axes[1].set_xlabel('Number of cells')\n",
+    "    axes[1].set_title('Top 20 Perturbations')\n",
+    "    axes[1].invert_yaxis()\n",
+    "    \n",
+    "    plt.tight_layout()\n",
+    "    plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 5. Dimensionality Reduction & Visualization"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Preprocessing for visualization\n",
+    "print(\"Running preprocessing pipeline...\")\n",
+    "\n",
+    "# Normalize and log-transform if not already done\n",
+    "if 'X_pca' not in adata.obsm.keys():\n",
+    "    # Work on a copy to preserve raw data\n",
+    "    adata_viz = adata.copy()\n",
+    "    \n",
+    "    # Normalize\n",
+    "    sc.pp.normalize_total(adata_viz, target_sum=1e4)\n",
+    "    sc.pp.log1p(adata_viz)\n",
+    "    \n",
+    "    # Find highly variable genes\n",
+    "    sc.pp.highly_variable_genes(adata_viz, n_top_genes=2000)\n",
+    "    \n",
+    "    # PCA\n",
+    "    sc.tl.pca(adata_viz, svd_solver='arpack')\n",
+    "    \n",
+    "    # Neighbors and UMAP\n",
+    "    sc.pp.neighbors(adata_viz, n_neighbors=15, n_pcs=30)\n",
+    "    sc.tl.umap(adata_viz)\n",
+    "    \n",
+    "    print(\"✓ Preprocessing complete\")\n",
+    "else:\n",
+    "    adata_viz = adata\n",
+    "    print(\"✓ Using existing preprocessing\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# PCA variance explained\n",
+    "plt.figure(figsize=(10, 4))\n",
+    "plt.plot(adata_viz.uns['pca']['variance_ratio'][:50], 'o-', markersize=4)\n",
+    "plt.xlabel('PC')\n",
+    "plt.ylabel('Variance ratio')\n",
+    "plt.title('PCA Variance Explained')\n",
+    "plt.grid(True, alpha=0.3)\n",
+    "plt.show()\n",
+    "\n",
+    "print(f\"Variance explained by first 30 PCs: {adata_viz.uns['pca']['variance_ratio'][:30].sum():.2%}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# UMAP visualization\n",
+    "fig, axes = plt.subplots(1, 2, figsize=(16, 6))\n",
+    "\n",
+    "# Color by QC metrics\n",
+    "sc.pl.umap(adata_viz, color='n_genes_by_counts', ax=axes[0], show=False, \n",
+    "           title='UMAP: Genes Detected')\n",
+    "sc.pl.umap(adata_viz, color='total_counts', ax=axes[1], show=False,\n",
+    "           title='UMAP: Total Counts')\n",
+    "\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Color by perturbation (showing a few interesting ones)\n",
+    "if pert_key:\n",
+    "    # Select 4 interesting perturbations\n",
+    "    interesting_perts = pert_counts.head(4).index.tolist()\n",
+    "    \n",
+    "    fig, axes = plt.subplots(2, 2, figsize=(14, 12))\n",
+    "    axes = axes.flatten()\n",
+    "    \n",
+    "    for i, pert in enumerate(interesting_perts):\n",
+    "        # Highlight cells with this perturbation\n",
+    "        highlight = adata_viz.obs[pert_key] == pert\n",
+    "        \n",
+    "        axes[i].scatter(adata_viz.obsm['X_umap'][:, 0], \n",
+    "                       adata_viz.obsm['X_umap'][:, 1],\n",
+    "                       c=['red' if h else 'lightgray' for h in highlight],\n",
+    "                       s=10, alpha=0.5)\n",
+    "        axes[i].set_title(f'Perturbation: {pert}\\n({highlight.sum()} cells)')\n",
+    "        axes[i].set_xlabel('UMAP 1')\n",
+    "        axes[i].set_ylabel('UMAP 2')\n",
+    "    \n",
+    "    plt.tight_layout()\n",
+    "    plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 6. Gene Expression Analysis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Find some marker genes to visualize\n",
+    "marker_genes = ['CD34', 'KIT', 'MYC', 'TP53', 'GAPDH']  # Common markers\n",
+    "\n",
+    "# Check which markers are present\n",
+    "present_markers = [g for g in marker_genes if g in adata_viz.var_names]\n",
+    "\n",
+    "if present_markers:\n",
+    "    print(f\"Found {len(present_markers)} marker genes: {present_markers}\")\n",
+    "    \n",
+    "    # Plot expression on UMAP\n",
+    "    sc.pl.umap(adata_viz, color=present_markers[:4], ncols=2, \n",
+    "               vmax='p99', cmap='viridis')\n",
+    "else:\n",
+    "    print(\"⚠ Marker genes not found in dataset\")\n",
+    "    print(f\"Example genes: {adata_viz.var_names[:10].tolist()}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 7. Compare Control vs Perturbed Cells"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "if pert_key:\n",
+    "    # Find control cells (often labeled as 'non-targeting' or 'control')\n",
+    "    control_labels = ['non-targeting', 'control', 'NT', 'negative_control']\n",
+    "    control_mask = adata_viz.obs[pert_key].isin(control_labels)\n",
+    "    \n",
+    "    if control_mask.sum() > 0:\n",
+    "        print(f\"Found {control_mask.sum()} control cells\")\n",
+    "        \n",
+    "        # Compare QC metrics\n",
+    "        fig, axes = plt.subplots(1, 3, figsize=(15, 4))\n",
+    "        \n",
+    "        metrics = ['n_genes_by_counts', 'total_counts', 'pct_counts_mt']\n",
+    "        titles = ['Genes per cell', 'Total counts', 'MT %']\n",
+    "        \n",
+    "        for ax, metric, title in zip(axes, metrics, titles):\n",
+    "            control_vals = adata_viz.obs.loc[control_mask, metric]\n",
+    "            perturbed_vals = adata_viz.obs.loc[~control_mask, metric]\n",
+    "            \n",
+    "            ax.hist(control_vals, bins=30, alpha=0.5, label='Control', color='blue')\n",
+    "            ax.hist(perturbed_vals, bins=30, alpha=0.5, label='Perturbed', color='red')\n",
+    "            ax.set_xlabel(title)\n",
+    "            ax.set_ylabel('Frequency')\n",
+    "            ax.legend()\n",
+    "        \n",
+    "        plt.tight_layout()\n",
+    "        plt.show()\n",
+    "    else:\n",
+    "        print(\"⚠ No control cells found\")\n",
+    "        print(f\"Unique perturbations: {adata_viz.obs[pert_key].unique()[:10].tolist()}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 8. Check Pipeline Outputs"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Check if processed outputs exist\n",
+    "results_dir = Path(\"../results/demo\")\n",
+    "\n",
+    "if results_dir.exists():\n",
+    "    print(\"✓ Results directory found\")\n",
+    "    print(\"\\nProcessed files:\")\n",
+    "    for file in sorted(results_dir.glob(\"**/*.h5ad\")):\n",
+    "        size_mb = file.stat().st_size / 1e6\n",
+    "        print(f\"  {file.relative_to(results_dir.parent):<40} {size_mb:>8.1f} MB\")\n",
+    "else:\n",
+    "    print(\"❌ Results directory not found\")\n",
+    "    print(\"\\nRun pipeline: snakemake --cores 4\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Load and compare pipeline stages\n",
+    "stages = {\n",
+    "    'filtered': 'results/demo/filtered.h5ad',\n",
+    "    'normalized': 'results/demo/normalized.h5ad',\n",
+    "    'balanced': 'results/demo/balanced.h5ad',\n",
+    "    'final': 'results/demo/final.h5ad'\n",
+    "}\n",
+    "\n",
+    "stage_info = []\n",
+    "for stage_name, stage_path in stages.items():\n",
+    "    full_path = Path('..') / stage_path\n",
+    "    if full_path.exists():\n",
+    "        adata_stage = sc.read_h5ad(full_path)\n",
+    "        stage_info.append({\n",
+    "            'Stage': stage_name,\n",
+    "            'Cells': adata_stage.n_obs,\n",
+    "            'Genes': adata_stage.n_vars,\n",
+    "            'Size (MB)': full_path.stat().st_size / 1e6\n",
+    "        })\n",
+    "\n",
+    "if stage_info:\n",
+    "    df_stages = pd.DataFrame(stage_info)\n",
+    "    print(\"\\nPipeline Stages Comparison:\")\n",
+    "    print(df_stages.to_string(index=False))\n",
+    "else:\n",
+    "    print(\"⚠ No processed stages found. Run pipeline first.\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Summary\n",
+    "\n",
+    "In this notebook, we:\n",
+    "1. ✓ Loaded the demo Perturb-seq dataset\n",
+    "2. ✓ Explored QC metrics and data quality\n",
+    "3. ✓ Analyzed perturbation distribution\n",
+    "4. ✓ Visualized data with PCA and UMAP\n",
+    "5. ✓ Examined gene expression patterns\n",
+    "6. ✓ Compared control vs perturbed cells\n",
+    "7. ✓ Reviewed pipeline outputs\n",
+    "\n",
+    "### Next Steps:\n",
+    "\n",
+    "1. **Run full pipeline**: `snakemake --cores 4`\n",
+    "2. **Explore results**: Check `results/demo/` directory\n",
+    "3. **Read QC report**: Open `reports/demo/qc_report.html`\n",
+    "4. **Process your own data**: Add to `config/datasets.yaml`\n",
+    "5. **Train ML models**: Use processed data in `results/demo/final.h5ad`\n",
+    "\n",
+    "### Resources:\n",
+    "\n",
+    "- [Pipeline Guide](../docs/PIPELINE_GUIDE.md)\n",
+    "- [Troubleshooting](../docs/TROUBLESHOOTING.md)\n",
+    "- [Scanpy Tutorials](https://scanpy-tutorials.readthedocs.io/)\n",
+    "- [Original Paper](https://doi.org/10.1016/j.cell.2022.05.013)"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.9.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}

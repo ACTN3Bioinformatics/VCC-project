@@ -1,304 +1,299 @@
-# VCC-2025
+# VCC-project: Single-Cell CRISPR Perturbation Pipeline
 
-Virtual Cell Challenge 2025 - Pipeline przygotowania danych
+[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Snakemake](https://img.shields.io/badge/snakemake-≥7.0-brightgreen.svg)](https://snakemake.readthedocs.io)
+[![DOI](https://zenodo.org/badge/1052336134.svg)](https://doi.org/10.5281/zenodo.17503791)
 
+A reproducible computational pipeline for processing and analyzing single-cell RNA-seq data with CRISPR perturbations, designed for the Virtual Cell Challenge 2025.
 
-## Opis projektu
+## 🎯 Overview
 
-Pipeline służy do przetwarzania danych single-cell RNA-seq z perturbacjami CRISPR w komórkach H1-hESC.
-Celem jest przygotowanie wysokiej jakości, spójnych i zbalansowanych zestawów danych do trenowania modeli ML/AI przewidujących efekty genowych perturbacji.
+This pipeline transforms raw single-cell RNA-seq data with genetic perturbations into high-quality, balanced datasets suitable for training ML/AI models to predict perturbation effects. It supports multiple dataset types and provides comprehensive quality control, normalization, and integration capabilities.
 
-## Struktura repozytorium i plików
+### Key Features
 
-- `/scripts/` - skrypty pipeline, m.in. filtrowanie, balansowanie, agregacja, integracja, splitowanie, feature engineering, benchmarki
-- `/config/` - pliki konfiguracyjne do sterowania przebiegiem pipeline’u
-- `/docs/` - dokumentacja rozszerzona, raporty jakości, tutoriale
-- `/data/` - przykładowe dane wejściowe i wyjściowe
-- `/reports/` - wyniki, benchmarki i analizy końcowe
+- **🔄 Automated Workflow**: Snakemake-based pipeline with dependency management
+- **✅ Quality Control**: Comprehensive filtering of low-quality cells and genes
+- **⚖️ Class Balancing**: Smart downsampling to prevent model bias
+- **🔗 Batch Integration**: Harmonization of multiple datasets using Harmony/BBKNN
+- **🧬 Feature Engineering**: Biological feature extraction (pathways, TFs, regulatory networks)
+- **📊 Cross-Validation**: Leave-genes-out CV strategy for unseen perturbations
+- **🔬 Reproducibility**: Fully containerized environment with version control
+- **📓 Interactive Notebooks**: Jupyter notebooks for data exploration and visualization
 
-## Struktura pipeline’u
+## 📋 Quick Start
 
-1. QC i filtracja danych ([filter_normalize.py](./scripts/filter_normalize.py))
-2. Normalizacja i log-transformacja ([filter_normalize.py](./scripts/filter_normalize.py))
-3. Balansowanie klas perturbacji ([balance.py](./scripts/balance.py))
-4. Agregacja pseudobulkowa (pseudobulk.py)
-5. Integracja publicznych datasetów i korekta batchów (integration.py)
-6. Tworzenie splitów i cross-validation (split_data.py)
-7. Feature engineering biologiczny (feature_engineering.py)
-8. Budowa DataLoaderów dla ML (dataloader.py)
-9. Sanity checks i baseline benchmarking (benchmark.py)
+### Prerequisites
 
----
+- Python 3.9+
+- Conda/Mamba
+- **Hardware**: 4+ cores, 8GB+ RAM (16GB recommended)
+- **Storage**: ~20GB for demo data, ~100GB for full datasets
 
-### Liczba i charakterystyka datasetów w VCC 2025
+### Installation
 
-Typy datasetów:
+```bash
+# Clone repository
+git clone https://github.com/ACTN3Bioinformatics/VCC-project.git
+cd VCC-project
 
-| Zbiór          | Opis                                                                | Przeznaczenie                   | Uwagi dotyczące preprocessing |
-|--------------|-------------------------------------------------------------|--------------------------------|----------------------------------------|
-| Training       | ~300k scRNA-seq komórek H1-hESC z perturbacjami CRISPRi           | Trening modeli ML              | Pełny preprocessing z QC, balansowaniem, batch correction |
-| Validation     | Zbiór podobny do treningowego, niezależny                           | Walidacja pośrednia            | Analogiczny preprocessing jak training |
-| Final Test     | Zbiór z perturbacjami nieobecnymi w training i validation          | Test końcowy, unseen genes     | Minimalny preprocessing, brak balansowania, limitowana ingerencja |
-| Public         | Zbiory publiczne i zewnętrzne (Perturb-seq, CROP-seq itd.)          | Rozszerzenie treningu/pretraining | Konieczna integracja, standaryzacja, różne batch correction |
-
-
-### Różnicowanie przygotowania datasetów w pipeline
-
-Aby zapewnić odpowiednie przygotowanie każdego datasetu, pipeline stosuje **konfigurowalny profil** per zbiór, definiowany w pliku YAML: [datasets.yaml](./config/datasets.yaml).
-
-
----
-
-### Dobre praktyki
-
-[Instrukcja do dokumentacji pipeline’u i danych](./docs/Pipeline_instr.md)
-
-Środowisko conda - [plik environment.yml](./environment.yml)
-
-Konfiguracja pipelinu i profilu datasetu - [datasets.yaml](./config/datasets.yaml)
-
----
-
-## Instrukcja uruchamiania
-
-```
-### Environment setup
-
+# Create conda environment
 conda env create -f environment.yml
 conda activate vcc2025
-
-python scripts/filter_normalize.py --dataset_name training --config config/datasets.yaml
-
-python scripts/balance.py --dataset_name training --config config/datasets.yaml
 ```
 
-## Szczególowy opis pipeline'u
+### Demo Data Setup
+
+Download demonstration data (optimized subset of Replogle et al. 2022):
+
+```bash
+# Automatic download and preparation
+snakemake download_demo_data --cores 1
+
+# This creates: data_local/demo/replogle_subset.h5ad (~500MB, 10k cells)
+```
+
+### Running the Pipeline
+
+```bash
+# Run complete pipeline on demo data
+snakemake --cores 4 --configfile config/datasets.yaml
+
+# Run specific stages
+snakemake results/demo/filtered.h5ad --cores 4          # QC only
+snakemake results/demo/balanced.h5ad --cores 4          # Through balancing
+snakemake results/demo/final.h5ad --cores 4             # Complete pipeline
+
+# Dry-run to see execution plan
+snakemake -n --configfile config/datasets.yaml
+
+# Generate workflow visualization
+snakemake --dag | dot -Tpng > docs/workflow_diagram.png
+```
+
+### Explore with Jupyter Notebook
+
+```bash
+# Launch demo exploration notebook
+jupyter notebook notebooks/demo_exploration.ipynb
+
+# Or explore processed results
+jupyter notebook
+```
+
+## 📁 Project Structure
+<pre>
+```
+VCC-project/
+├── workflows/              # Snakemake workflow definitions
+│   ├── Snakefile          # Main workflow entry point
+│   └── rules/             # Individual pipeline rules
+│       ├── download.smk   # Data acquisition
+│       ├── qc.smk         # Quality control & filtering
+│       ├── normalize.smk  # Normalization & scaling
+│       ├── balance.smk    # Class balancing
+│       ├── integrate.smk  # Batch integration
+│       ├── split.smk      # Train/val/test splits
+│       └── features.smk   # Feature engineering
+├── scripts/               # Core Python modules
+│   ├── download_demo_data.py
+│   ├── filter_normalize.py
+│   ├── balance.py
+│   ├── integration.py
+│   ├── split_data.py
+│   ├── feature_engineering.py
+│   └── utils.py
+├── config/                # Configuration files
+│   ├── datasets.yaml      # Dataset-specific parameters
+│   └── config.yaml        # Global pipeline settings
+├── data_local/            # Local data storage (NOT tracked in Git)
+│   ├── demo/             # Demonstration datasets
+│   ├── raw/              # Raw input data
+│   └── processed/        # Intermediate outputs
+├── results/               # Final pipeline outputs
+│   └── demo/             # Demo results
+├── reports/               # QC reports and visualizations
+├── logs/                  # Snakemake and script logs
+├── notebooks/             # Jupyter notebooks
+│   └── demo_exploration.ipynb  # Interactive demo notebook
+├── docs/                  # Extended documentation
+│   ├── PIPELINE_GUIDE.md  # Detailed pipeline guide
+│   ├── QUICKSTART.md     # 5-minute tutorial
+│   └── TROUBLESHOOTING.md # Common issues
+├── tests/                 # Unit tests
+│   ├── test_qc.py
+│   └── test_balance.py
+├── environment.yml        # Conda environment specification
+├── LICENSE               # MIT License
+├── CITATION.cff          # Citation metadata
+├── CONTRIBUTING.md       # Contribution guidelines
+└── README.md             # This file
+```
+</pre>
+## 🔬 Pipeline Overview
+
+The pipeline consists of modular stages executed by Snakemake:
+
+1. **📥 Data Acquisition** - Download and prepare demo data
+2. **🔍 Quality Control** - Filter low-quality cells and genes
+3. **📊 Normalization** - Count normalization and log transformation
+4. **⚖️ Class Balancing** - Balance perturbation classes
+5. **🔗 Batch Integration** - Harmonize datasets (optional)
+6. **🧬 Feature Engineering** - Extract biological features
+7. **✂️ Data Splitting** - Create train/val/test splits
+8. **📈 Benchmarking** - Evaluate baseline models
+
+**For detailed information**, see [docs/PIPELINE_GUIDE.md](docs/PIPELINE_GUIDE.md).
+
+## 📊 Dataset Types
+
+| Dataset | Description | Size | Purpose | Processing |
+|---------|-------------|------|---------|------------|
+| **Demo** | Replogle K562 subset | ~10k cells | Testing/Learning | Full pipeline |
+| **Training** | H1-hESC CRISPRi | ~300k cells | Model training | Full QC + balancing |
+| **Validation** | H1-hESC validation | ~50k cells | Model selection | Same as training |
+| **Test** | Unseen perturbations | ~50k cells | Final evaluation | Minimal processing |
+
+## 🔧 Configuration
+
+Customize processing via `config/datasets.yaml`:
+
+```yaml
+demo:
+  input_path: "data_local/demo/replogle_subset.h5ad"
+  output_dir: "results/demo"
+  
+  # QC thresholds
+  min_genes: 200
+  max_genes: 6000
+  max_pct_mt: 15
+  min_cells_per_gene: 3
+  
+  # Processing options
+  normalize: true
+  log_transform: true
+  scale: true
+  balance: true
+  target_cells_per_perturbation: 100
+  
+  # Integration (for multi-batch data)
+  batch_correction: false
+  batch_key: "batch"
+```
+
+See [docs/PIPELINE_GUIDE.md#configuration](docs/PIPELINE_GUIDE.md#configuration) for all options.
 
-### 0. Pozyskanie i wstępne zapoznanie się z danymi
+## 💻 System Requirements
+
+### Minimum (Demo Data)
+- **CPU**: 4 cores
+- **RAM**: 8GB
+- **Storage**: 20GB SSD
+- **Time**: ~30 minutes
 
-Pobranie danych: z oficjalnego repozytorium VCC 2025 (reference dataset, training set) w formacie AnnData (.h5ad) oraz dodatkowych public perturbation datasets (np. Perturb-seq).
+### Recommended (Demo Data)
+- **CPU**: AMD Ryzen 5 7535HS or equivalent (8 cores @ 3.55 GHz)
+- **RAM**: 16GB LPDDR5x-6400
+- **GPU**: AMD Radeon 660M (optional, for ML training)
+- **Storage**: 50GB SSD
+- **Time**: ~15 minutes
 
-Eksploracja danych:
+### Full VCC 2025 Dataset
+- **CPU**: 16+ cores
+- **RAM**: 64GB+
+- **GPU**: 16GB+ VRAM for deep learning
+- **Storage**: 200GB+ SSD
+- **Time**: ~2-4 hours
 
-  * Wczytanie danych w Pythonie za pomocą scanpy.read_h5ad().
-  * Przegląd metadanych (obs = komórki, var = geny, X = macierz ekspresji).
-  * Sprawdzenie wymiarów danych (np. liczba komórek, genów).
-  * Przegląd warunków eksperymentalnych (perturbacje, kontrola).
-  * Podstawowe podsumowania statystyczne dotyczące liczby UMIs, ekspresji i rozkładów.
+**Note**: Demo data is specifically optimized for laptop processing on AMD Ryzen 5 7535HS system (16GB RAM).
 
-Cel: uzyskanie świadomości co do jakości i struktury danych, co pozwoli zaplanować dalszy preprocessing.
+## 📚 Documentation
 
-### 1. Jakość i filtracja danych (Quality Control - QC)
+- **[Quick Start Guide](docs/QUICKSTART.md)** - Get running in 5 minutes
+- **[Pipeline Guide](docs/PIPELINE_GUIDE.md)** - Complete pipeline documentation
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Demo Notebook](notebooks/demo_exploration.ipynb)** - Interactive data exploration
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
 
-Kontrola jakości komórek:
+## 📓 Jupyter Notebooks
 
-  * Liczba genów wykrytych w każdej komórce (n_genes_by_counts).
-  * Suma UMIs na komórkę (total_counts).
-  * Procent genów mitochondrialnych (np. geny rozpoczynające się na "MT-") — oznacza zdrowie/żywotność.
-  * Detekcja dubletów
+### Demo Exploration Notebook
 
-Filtracja:
+The `notebooks/demo_exploration.ipynb` provides an interactive introduction to:
+- Loading and inspecting processed data
+- Visualizing QC metrics
+- Exploring perturbation effects
+- Dimensionality reduction (PCA, UMAP)
+- Comparing pipeline stages
 
-  * Usuń komórki z niskim n_genes_by_counts — np. poniżej 200 genów (typowo usunięcie martwych/słabych komórek).
-  * Usuń komórki o wysokim procencie ekspresji mitochondrialnej (np. >10-15%) — potencjalne artefakty.
+**Launch notebook**:
+```bash
+jupyter notebook notebooks/demo_exploration.ipynb
+```
 
-Opcjonalnie: filtracja genów występujących w bardzo niewielu komórkach (np. mniej niż 3).
+## 🧪 Testing
 
-Narzędzia:
+Run unit tests:
 
-  * scanpy.pp.calculate_qc_metrics()
-  * scanpy.pp.filter_cells(min_genes=200, max_genes=None, max_mt_pct=15)
-  * Graficzne wizualizacje QC: histogramy liczby wykrytych genów, umi, procent MT — w scanpy.pl.violin lub scanpy.pl.scatter.
+```bash
+# All tests
+pytest tests/
 
-Cel: eliminacja błędnych lub słabych danych źródłowych, zwiększenie jakości downstream.
+# Specific test
+pytest tests/test_qc.py -v
 
-### 2. Normalizacja i transformacja danych
+# With coverage
+pytest --cov=scripts tests/
+```
 
-Normalizacja:
+## 🤝 Contributing
 
-  * Skalowanie sumy ekspresji (UMI) per komórkę do stałej wartości (np. 10,000) — redukcja wpływu różnej głębokości sekwencjonowania.
-  * Log-transformation: Zamiana surowych odczytów UMI na postać logarytmiczną (log1p) dla stabilizacji wariancji.
+Contributions welcome! Please:
 
-Skalowanie:
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-  * Skalowanie genów do średniej 0 i odchylenia 1.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
-Opcjonalnie: usuwanie efektu zmienności technicznej (regresja zmiennych takich jak suma UMI, procent MT).
+## 📝 Citation
 
-Narzędzia:
+If you use this pipeline in your research, please cite:
 
-  * scanpy.pp.normalize_total(target_sum=1e4)
-  * scanpy.pp.log1p()
-  * scanpy.pp.scale()
-  * scanpy.pp.regress_out(variables=['total_counts', 'pct_counts_mt'])
+```bibtex
+@software{vcc_project_2025,
+  author = {Szymon Myrta},
+  title = {VCC-project: Single-Cell CRISPR Perturbation Pipeline},
+  year = {2025},
+  url = {https://github.com/ACTN3Bioinformatics/VCC-project},
+  doi = {10.5281/zenodo.17503792}
+}
+```
 
-Cel: standaryzowane dane do sensownej analizy i trenowania modeli ML.
+**Demo data**: If using the demo dataset, please also cite:
+- Replogle et al. (2022). "Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq." Cell. DOI: [10.1016/j.cell.2022.05.013](https://doi.org/10.1016/j.cell.2022.05.013)
 
-### 3. Balansowanie danych względem perturbacji
+## 📄 License
 
-Analiza rozkładu komórek:
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-  * Wyznaczenie liczebności komórek w każdej grupie perturbacji (target_gene).
-  * Identyfikacja perturbacji z nadmierną lub zbyt małą liczbą komórek.
+## 🙏 Acknowledgments
 
-Metody balansowania:
+- Virtual Cell Challenge 2025 organizers
+- Replogle et al. for public Perturb-seq data
+- scPerturb database for curated datasets
+- Scanpy and AnnData developers
+- Snakemake community
 
-  * Downsampling: zmniejszenie liczby komórek dla nadreprezentowanych perturbacji, aby wyrównać klasy.
-  * Ewentualne oversampling (np. SMOTE) tylko w ostateczności i ostrożnie.
+## 📮 Contact
 
-Narzędzia: Pandas do grupowania i losowego próbkowania (np. df.groupby('target_gene').sample(n=desired_count, random_state=42)).
+- **Issues**: [GitHub Issues](https://github.com/ACTN3Bioinformatics/VCC-project/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ACTN3Bioinformatics/VCC-project/discussions)
+- **Email**: your.email@example.com
 
-Cel: zapobiegnięcie biasowi w modelach ML, które mogłyby nadmiernie faworyzować najliczniej reprezentowane perturbacje.
+---
 
-### 4. Agregacja pseudobulkowa (opcjonalna)
-
-Procedura:
-
-  * Grupowanie komórek po perturbacji (target_gene).
-  * Agregacja ekspresji genów: średnia lub mediana wartości ekspresji dla każdej grupy.
-
-Przydatność:
-
-  * Redukcja szumu biologicznego i technicznego.
-  * Zmniejszenie wymiaru danych – ułatwia klasyczne modele np. regresji liniowej.
-
-Narzędzia: Pandas (groupby('target_gene').agg('mean')) lub scanpy przy agregacji na poziomie AnnData.
-
-Cel: alternatywna reprezentacja danych dla bazowego modelu lub wyjściowego benchmarku.
-
-### 5. Integracja zewnętrznych publicznych perturbation datasets
-
-Pobranie publicznych danych:
-
-  * Wybranie uznanych datasetów perturbacji CRISPR single-cell RNA-seq, np. Perturb-seq, CROP-seq, Replogle 2022, Norman 2019.
-  * Pobranie danych w dostępnych formatach (h5ad, CSV).
-
-Mapowanie genów:
-
-  * Standaryzacja nazw genów na wspólny zestaw 18,080 genów VCC.
-  * Konwersja nazw do Ensembl IDs lub HGNC symboli.
-  * Obsługa problemów z nazwami: aliasy, synonimy, brakujące geny.
-
-Unifikacja formatów:
-
-  * Konwersja do spójnego formatu (AnnData lub pandas DataFrame).
-  * Synchronizacja struktury metadanych (cell metadata, perturbation labels).
-
-Obsługa brakujących danych:
-
-  * Dla genów nieobecnych zero-fill (0 ekspresji).
-  * Opcjonalnie imputacja za pomocą prostych algorytmów (np. KNN, MICE).
-
-Korekta batchów:
-
-  * Usunięcie efektów technicznych i różnic eksperymentalnych między zbiorami.
-  * Narzędzia: Harmony, BBKNN (Python).
-
-Efekt końcowy:
-
-  * Jeden duży, spójny dataset gotowy do pre-trainingu i fine-tuningu modeli.
-  * Zwiększenie różnorodności danych, poprawa generalizacji.
-
-### 6. Tworzenie splitów danych i cross-validation
-
-Zadania:
-
-  * Podział danych na trening, walidację i test zgodnie z regułami VCC (train on 150 genów perturbowanych).
-  * Cross-validation z pozostawieniem genów poza treningiem („leave-genes-out”) imitujący finalne unseen genes.
-
-Rodzaje splitów:
-
-  * Splity per gen – cała grupa komórek dla danego genu idzie do jednego z podzbiorów.
-  * Krotna walidacja (np. 5-fold CV) z różnymi zestawami genów.
-  * Alternatywnie splity per eksperyment/batch jeżeli wpływa na ocenę.
-
-Cel:
-
-  * Dokładna ocena zdolności generalizacji modelu na nowe, niewidziane perturbacje.
-  * Uniknięcie przecieku danych między zbiorami.
-  * Narzędzia: sklearn.model_selection.GroupKFold lub własne implementacje w Pythonie bazujące na metadanych AnnData.
-
-### 7. Feature engineering z biologiczną wiedzą
-
-Dodatkowe cechy biologiczne mogące zwiększyć moc predykcyjną:
-
-  * Informacje o genach regulatorowych np. czy dany gen jest celem czynników transkrypcyjnych (TF).
-  * Przynależność genów do kluczowych ścieżek sygnalizacyjnych (KEGG, Reactome).
-  * Dane o interakcjach gen-regulator (Gene Regulatory Networks).
-  * Współczynniki biologiczne opisujące ekspresję w stanach pluripotentnych H1-hESC (np. OCT4, SOX2, NANOG).
-
-Źródła danych:
-
-  * Bazy KEGG, Reactome, Enrichr.
-  * Bioinformatyczne API takie jak biomaRt, Ensembl REST API.
-
-Metodologia:
-
-  * Stworzenie dodatkowej macierzy cech (feature_df) zawierającej powyższe informacje na poziomie genów.
-  * Dołączenie tych cech do modelu ML jako priorytetowej warstwy informacji.
-
-Cel: podniesienie biologicznej interpretowalności modelu oraz jego skuteczności w przewidywaniu efektów perturbacji.
-
-### 8. Przygotowanie danych wejściowych do ML/AI
-
-Przetwarzanie i zapis:
-
-  * Konwersja znormalizowanych danych do formatu h5ad z podziałem na train/val/pretrain.
-  * Uporządkowanie metadanych i cech w strukturze oczekiwanej przez modele ML.
-
-Budowa DataLoaderów PyTorch:
-
-  * Implementacja klas Dataset i DataLoader obsługujących dane AnnData z indeksacją i efektywnym dostępem do dużych zbiorów.
-  * Wsparcie trybu „AnnData-backed” - nie ładowanie całych danych do pamięci, tylko strumieniowy dostęp.
-
-Zabezpieczenia:
-
-  * Walidacja spójności danych.
-  * Zapewnienie reproducibility (seed, zapisywanie konfiguracji).
-
-Cel:
-
-  * Efektywne wejście dla trenowania AI/ML modeli bez przeciążania pamięci RAM.
-  * Możliwość szybkiego eksperymentowania i zmiany hiperparametrów.
-
-### 9. Sanity checks i benchmarki
-
-Testy biologiczne sanity check:
-
-  * Sprawdzenie, czy model przewiduje znane biologiczne efekty knockoutów np. KO OCT4 powodujące spadek ekspresji markerów pluripotencji.
-  * Analiza, czy model nie uczy się "na pamięć" konkretnych genów czy artefaktów.
-
-Baseline models:
-
-  * Prostota modeli: średnia ekspresja per target gene (cell mean predictor).
-  * Pseudobulk linear model na zagregowanych danych.
-  * Zaawansowane modele transferowe: scVI, CPA, GPerturb itp.
-
-Porównanie wyników:
-
-  * Metryki: korelacja Pearsona/Spearmana, RMSE na walidacji.
-  * Ocena, czy nowe modele poprawiają się względem baseline.
-
-Cel:
-
-  * Zapewnienie wiarygodnej bazy porównawczej.
-  * Umożliwienie zespołowi ML szybkie zorientowanie się, czy ich pomysły rzeczywiście działają.
-
-
-
-## Dodatkowe
-
-### Usuwanie potencjalnych źródeł data leakage
-
-Analiza:
-
-Upewnienie się, że wejściowe cechy modelu nie zawierają jawnej informacji o tym, jaki gen jest perturbowany (uniknięcie łatwego "przecieku danych").
-
-Działania:
-
-  * Usunięcie kolumn metadanych zawierających target labels z cech treningowych.
-  * Oddzielenie metadanych opisujących komórki/perturbacje od danych wejściowych.
-  * Ustanowienie ścisłego podziału danych między treningiem, walidacją i testem, aby uniknąć przecieku informacji.
-
-Cel: zapewnienie, że wyniki modelu są autentyczne i generalizują, a nie "uczą się na pamięć".
-
+**Status**: 🚀 Active Development | **Version**: 1.0.0 | **Last Updated**: October 2025

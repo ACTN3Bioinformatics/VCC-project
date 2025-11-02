@@ -1,129 +1,54 @@
-data:
-  input_file: "data/raw/reference.h5ad"
-  output_file: "data/processed/filtered_normalized_train.h5ad"
+# Global VCC-project configuration
 
-qc:
-  min_genes: 200                    # Minimum genes detected per cell
-  max_mt_pct: 15                    # Maximum percent mitochondrial gene counts
-  min_counts: 500                   # Minimum total counts (UMI) per cell
-  max_counts: 50000                 # Maximum total counts per cell
-  min_mt_pct: 0                     # Minimum mitochondrial percent (optional)
+# Demo data settings
+# Source: Replogle et al. 2022 K562 essential Perturb-seq dataset
+# Primary: Zenodo (scPerturb database) - 1.44 GB
+# Backup: Figshare (original authors)
+demo_data_url: "https://zenodo.org/records/7041849/files/ReplogleWeissman2022_K562_essential.h5ad"
+demo_alternative_url: "https://plus.figshare.com/ndownloader/files/42444534"
+demo_max_cells: 10000
+demo_target_perturbations: 150
 
-doublet_detection:
-  enable: true                     # Enable doublet detection
-  score_threshold: 0.5             # Threshold above which cells are filtered as doublets
+# Paths
+data_local_dir: "data_local"
+results_dir: "results"
+reports_dir: "reports"
+logs_dir: "logs"
 
-cell_cycle:
-  enable: true                    # Enable cell cycle phase scoring
-  regress: true                   # Regress out cell cycle scores from data
-  s_phase_genes:                  # List of S phase genes (HGNC symbols) [from Seurat 5.3]
-    - "MCM5"
-    - "PCNA"
-    - "TYMS"
-    - "FEN1"
-    - "MCM2"
-    - "MCM4"
-    - "RRM1"
-    - "UNG"
-    - "GINS2"
-    - "MCM6"
-    - "CDCA7"
-    - "DTL"
-    - "PRIM1"
-    - "UHRF1"
-    - "MLF1IP"
-    - "HELLS"
-    - "RFC2"
-    - "RPA2"
-    - "NASP"
-    - "RAD51AP1"
-    - "GMNN"
-    - "WDR76"
-    - "SLBP"
-    - "CCNE2"
-    - "UBR7"
-    - "POLD3"
-    - "MSH2"
-    - "ATAD2"
-    - "RAD51"
-    - "RRM2"
-    - "CDC45"
-    - "CDC6"
-    - "EXO1"
-    - "TIPIN"
-    - "DSCC1"
-    - "BLM"
-    - "CASP8AP2"
-    - "USP1"
-    - "CLSPN"
-    - "POLA1"
-    - "CHAF1B"
-    - "BRIP1"
-    - "E2F8"
-  g2m_phase_genes:                # List of G2/M phase genes (HGNC symbols) [from Seurat 5.3]
-    - "HMGB2"
-    - "CDK1"
-    - "NUSAP1"
-    - "UBE2C"
-    - "BIRC5"
-    - "TPX2"
-    - "TOP2A"
-    - "NDC80"
-    - "CKS2"
-    - "NUF2"
-    - "CKS1B"
-    - "MKI67"
-    - "TMPO"
-    - "CENPF"
-    - "TACC3"
-    - "FAM64A"
-    - "SMC4"
-    - "CCNB2"
-    - "CKAP2L"
-    - "CKAP2"
-    - "AURKB"
-    - "BUB1"
-    - "KIF11"
-    - "ANP32E"
-    - "TUBB4B"
-    - "GTSE1"
-    - "KIF20B"
-    - "HJURP"
-    - "CDCA3"
-    - "HN1"
-    - "CDC20"
-    - "TTK"
-    - "CDC25C"
-    - "KIF2C"
-    - "RANGAP1"
-    - "NCAPD2"
-    - "DLGAP5"
-    - "CDCA2"
-    - "CDCA8"
-    - "ECT2"
-    - "KIF23"
-    - "HMMR"
-    - "AURKA"
-    - "PSRC1"
-    - "ANLN"
-    - "LBR"
-    - "CKAP5"
-    - "CENPE"
-    - "CTCF"
-    - "NEK2"
-    - "G2E3"
-    - "GAS2L3"
-    - "CBX5"
-    - "CENPA"
+# Compute resources (optimized for AMD Ryzen 5 7535HS, 16GB RAM)
+max_threads: 8
+default_threads: 4
+max_memory_mb: 14000
+mem_efficient_mode: true
 
-normalization:
-  target_sum: 10000               # Total counts normalization target
-  regress_vars:                   # Variables to regress out during normalization
-    - "total_counts"
-    - "pct_counts_mt"
+# Random seeds
+random_seed: 42
 
-balance:
-  target_key: "target_gene"
-  mode: "min_class"
-  target_count: 1000
-  random_state: 42
+# Feature engineering databases
+pathway_databases:
+  - "KEGG"
+  - "Reactome"
+  - "GO_Biological_Process"
+  - "GO_Molecular_Function"
+
+tf_databases:
+  - "ENCODE"
+  - "ChIP-Atlas"
+
+# Visualization
+figure_dpi: 150
+figure_format: "png"
+
+# QC defaults
+default_qc:
+  min_genes: 200
+  max_genes: 6000
+  max_pct_mt: 15
+  min_cells_per_gene: 3
+
+# Normalization defaults
+default_normalization:
+  target_sum: 10000
+  log_transform: true
+  scale: true
+  max_value: 10

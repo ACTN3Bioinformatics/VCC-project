@@ -1,0 +1,28 @@
+cff-version: 1.0.0
+title: 'VCC-project: Single-Cell CRISPR Perturbation Pipeline'
+message: 'If you use this software, please cite it as below.'
+type: software
+authors:
+  - family-names: 'Myrta'
+    given-names: 'Szymon'
+    affiliation: 'ACTN3 Bioinformatics'
+    orcid: 'https://orcid.org/0000-0003-1714-6105'
+repository-code: 'https://github.com/ACTN3Bioinformatics/VCC-project'
+url: 'https://github.com/ACTN3Bioinformatics/VCC-project'
+abstract: >-
+  A reproducible computational pipeline for processing and analyzing 
+  single-cell RNA-seq data with CRISPR perturbations, designed for 
+  the Virtual Cell Challenge 2025. Features automated quality control,
+  normalization, class balancing, and batch integration using Snakemake.
+keywords:
+  - bioinformatics
+  - single-cell
+  - CRISPR
+  - perturbation
+  - RNA-seq
+  - machine-learning
+  - pipeline
+  - snakemake
+license: MIT
+version: 1.0.0
+date-released: '2025-10-26'

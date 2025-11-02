@@ -1,0 +1,67 @@
+"""
+VCC-project Main Snakemake Workflow
+"""
+
+import os
+from pathlib import Path
+import yaml
+
+configfile: "config/datasets.yaml"
+configfile: "config/config.yaml"
+
+with open("config/datasets.yaml", 'r') as f:
+    datasets_config = yaml.safe_load(f)
+
+DATASETS = list(datasets_config.keys())
+
+DATA_LOCAL = "data_local"
+RESULTS = "results"
+REPORTS = "reports"
+LOGS = "logs"
+
+include: "rules/download.smk"
+include: "rules/qc.smk"
+include: "rules/normalize.smk"
+include: "rules/balance.smk"
+include: "rules/integrate.smk"
+include: "rules/split.smk"
+include: "rules/features.smk"
+
+rule all:
+    input:
+        expand("{results}/{dataset}/final.h5ad", 
+               results=RESULTS, 
+               dataset=DATASETS),
+        expand("{reports}/{dataset}/qc_report.html",
+               reports=REPORTS,
+               dataset=DATASETS),
+        expand("{results}/{dataset}/features.h5ad",
+               results=RESULTS,
+               dataset=DATASETS)
+
+rule download_all:
+    input:
+        expand("{data_local}/demo/replogle_subset.h5ad", 
+               data_local=DATA_LOCAL)
+
+rule qc_all:
+    input:
+        expand("{results}/{dataset}/filtered.h5ad",
+               results=RESULTS,
+               dataset=DATASETS)
+
+rule balance_all:
+    input:
+        expand("{results}/{dataset}/balanced.h5ad",
+               results=RESULTS,
+               dataset=DATASETS)
+
+rule clean:
+    shell:
+        """
+        rm -rf {RESULTS}/*
+        rm -rf {REPORTS}/*
+        rm -rf logs/*
+        rm -rf .snakemake/*
+        echo "Cleaned all results and logs"
+        """
