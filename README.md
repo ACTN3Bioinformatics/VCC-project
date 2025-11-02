@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Snakemake](https://img.shields.io/badge/snakemake-≥7.0-brightgreen.svg)](https://snakemake.readthedocs.io)
-[![DOI](https://zenodo.org/badge/1052336134.svg)](https://doi.org/10.5281/zenodo.17503791)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17503792.svg)](https://doi.org/10.5281/zenodo.17503792)
 
 A reproducible computational pipeline for processing and analyzing single-cell RNA-seq data with CRISPR perturbations, designed for the Virtual Cell Challenge 2025.
 
@@ -83,7 +83,7 @@ jupyter notebook
 ```
 
 ## 📁 Project Structure
-<pre>
+
 ```
 VCC-project/
 ├── workflows/              # Snakemake workflow definitions
@@ -130,7 +130,7 @@ VCC-project/
 ├── CONTRIBUTING.md       # Contribution guidelines
 └── README.md             # This file
 ```
-</pre>
+
 ## 🔬 Pipeline Overview
 
 The pipeline consists of modular stages executed by Snakemake:
@@ -154,6 +154,7 @@ The pipeline consists of modular stages executed by Snakemake:
 | **Training** | H1-hESC CRISPRi | ~300k cells | Model training | Full QC + balancing |
 | **Validation** | H1-hESC validation | ~50k cells | Model selection | Same as training |
 | **Test** | Unseen perturbations | ~50k cells | Final evaluation | Minimal processing |
+| **Public** | External datasets | Variable | Pre-training/augmentation | Full integration |
 
 ## 🔧 Configuration
 
@@ -292,7 +293,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Issues**: [GitHub Issues](https://github.com/ACTN3Bioinformatics/VCC-project/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/ACTN3Bioinformatics/VCC-project/discussions)
-- **Email**: your.email@example.com
+- **Email**: kontakt@actn3.pl
 
 ---
 

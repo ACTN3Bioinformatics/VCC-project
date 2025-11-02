@@ -1,14 +1,157 @@
-# Dataset-specific configurations
+# Dataset-specific configurations for VCC-project
 
 demo:
+  # Input/Output
   input_path: "data_local/demo/replogle_subset.h5ad"
   output_dir: "results/demo"
   
-  # QC thresholds
+  # Quality Control thresholds
+  min_genes: 200           # Minimum genes detected per cell
+  max_genes: 6000          # Maximum genes (doublet detection)
+  max_pct_mt: 15           # Maximum mitochondrial percentage
+  min_cells_per_gene: 3    # Minimum cells expressing each gene
+  
+  # Normalization
+  normalize: true
+  target_sum: 10000        # Target sum for count normalization
+  log_transform: true
+  scale: true
+  regress_out:             # Technical variables to regress out
+    - "total_counts"
+    - "pct_counts_mt"
+  
+  # Class balancing
+  balance: true
+  target_cells_per_perturbation: 100
+  min_cells_per_perturbation: 10
+  perturbation_key: "target_gene_name"
+  
+  # Batch correction (not needed for demo - single experiment)
+  batch_correction: false
+  batch_key: "batch"
+  integration_method: "harmony"  # or "bbknn"
+  
+  # Feature engineering
+  extract_features: true
+  use_pathways: true
+  use_tf_targets: true
+
+training:
+  # Input/Output
+  input_path: "data_local/raw/vcc2025_training.h5ad"
+  output_dir: "results/training"
+  
+  # Quality Control
   min_genes: 200
-  max_genes: 6000
+  max_genes: 8000
+  max_pct_mt: 10           # Stricter for training data
+  min_cells_per_gene: 5
+  
+  # Normalization
+  normalize: true
+  target_sum: 10000
+  log_transform: true
+  scale: true
+  regress_out:
+    - "total_counts"
+    - "pct_counts_mt"
+    - "n_genes_by_counts"
+  
+  # Class balancing
+  balance: true
+  target_cells_per_perturbation: 500  # More cells for training
+  min_cells_per_perturbation: 50
+  perturbation_key: "target_gene"
+  
+  # Batch correction
+  batch_correction: true
+  batch_key: "batch"
+  integration_method: "harmony"
+  
+  # Feature engineering
+  extract_features: true
+  use_pathways: true
+  use_tf_targets: true
+  use_regulatory_networks: true
+
+validation:
+  # Input/Output
+  input_path: "data_local/raw/vcc2025_validation.h5ad"
+  output_dir: "results/validation"
+  
+  # Quality Control (same as training)
+  min_genes: 200
+  max_genes: 8000
+  max_pct_mt: 10
+  min_cells_per_gene: 5
+  
+  # Normalization
+  normalize: true
+  target_sum: 10000
+  log_transform: true
+  scale: true
+  regress_out:
+    - "total_counts"
+    - "pct_counts_mt"
+    - "n_genes_by_counts"
+  
+  # Class balancing
+  balance: true
+  target_cells_per_perturbation: 500
+  min_cells_per_perturbation: 50
+  perturbation_key: "target_gene"
+  
+  # Batch correction
+  batch_correction: true
+  batch_key: "batch"
+  integration_method: "harmony"
+  
+  # Feature engineering
+  extract_features: true
+  use_pathways: true
+  use_tf_targets: true
+  use_regulatory_networks: true
+
+test:
+  # Input/Output
+  input_path: "data_local/raw/vcc2025_test.h5ad"
+  output_dir: "results/test"
+  
+  # Quality Control (minimal for test - preserve unseen distribution)
+  min_genes: 200
+  max_genes: 8000
   max_pct_mt: 15
   min_cells_per_gene: 3
+  
+  # Normalization
+  normalize: true
+  target_sum: 10000
+  log_transform: true
+  scale: true
+  regress_out: []          # No regression for test set
+  
+  # Class balancing (NO balancing for test!)
+  balance: false
+  perturbation_key: "target_gene"
+  
+  # Batch correction (minimal)
+  batch_correction: false
+  
+  # Feature engineering
+  extract_features: true
+  use_pathways: true
+  use_tf_targets: true
+
+public:
+  # Input/Output
+  input_path: "data_local/raw/public_datasets.h5ad"
+  output_dir: "results/public"
+  
+  # Quality Control (lenient for diverse public data)
+  min_genes: 200
+  max_genes: 7000
+  max_pct_mt: 20           # More lenient for public data
+  min_cells_per_gene: 5
   
   # Normalization
   normalize: true
@@ -19,45 +162,19 @@ demo:
     - "total_counts"
     - "pct_counts_mt"
   
-  # Balancing
+  # Class balancing
   balance: true
-  target_cells_per_perturbation: 100
-  min_cells_per_perturbation: 10
-  perturbation_key: "target_gene_name"
-  
-  # Integration
-  batch_correction: false
-  batch_key: "batch"
-  integration_method: "harmony"
-  
-  # Features
-  extract_features: true
-  use_pathways: true
-  use_tf_targets: true
-
-training:
-  input_path: "data_local/raw/vcc2025_training.h5ad"
-  output_dir: "results/training"
-  min_genes: 200
-  max_genes: 8000
-  max_pct_mt: 10
-  min_cells_per_gene: 5
-  normalize: true
-  target_sum: 10000
-  log_transform: true
-  scale: true
-  regress_out:
-    - "total_counts"
-    - "pct_counts_mt"
-    - "n_genes_by_counts"
-  balance: true
-  target_cells_per_perturbation: 500
-  min_cells_per_perturbation: 50
+  target_cells_per_perturbation: 200
+  min_cells_per_perturbation: 20
   perturbation_key: "target_gene"
+  
+  # Batch correction (CRITICAL for public data!)
   batch_correction: true
-  batch_key: "batch"
+  batch_key: "dataset_source"  # Different from experiment batch
   integration_method: "harmony"
+  
+  # Feature engineering
   extract_features: true
   use_pathways: true
   use_tf_targets: true
-  use_regulatory_networks: true
+  use_regulatory_networks: false  # May not be applicable

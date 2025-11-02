@@ -28,7 +28,8 @@ jobs:
       shell: bash -l {0}
       run: |
         conda install flake8
-        flake8 scripts/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Ignore F821 (undefined name 'snakemake') as it's defined by Snakemake at runtime
+        flake8 scripts/ --count --select=E9,F63,F7,F82 --extend-ignore=F821 --show-source --statistics
     
     - name: Test with pytest
       shell: bash -l {0}
