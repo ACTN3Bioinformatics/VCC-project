@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9, '3.10', '3.11']
+        python-version: ['3.9']  # Only 3.9 to match environment.yml
 
     steps:
     - uses: actions/checkout@v3
@@ -21,13 +21,20 @@ jobs:
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
-        environment-file: environment.yml
+        channels: conda-forge,bioconda,defaults
+        channel-priority: flexible
         activate-environment: vcc2025
+        environment-file: environment.yml
+    
+    - name: Verify environment
+      shell: bash -l {0}
+      run: |
+        conda info
+        conda list
     
     - name: Lint with flake8
       shell: bash -l {0}
       run: |
-        conda install flake8
         # Ignore F821 (undefined name 'snakemake') as it's defined by Snakemake at runtime
         flake8 scripts/ --count --select=E9,F63,F7,F82 --extend-ignore=F821 --show-source --statistics
     
@@ -39,4 +46,5 @@ jobs:
     - name: Snakemake dry-run
       shell: bash -l {0}
       run: |
-        snakemake -n --configfile config/datasets.yaml
+        cd workflows
+        snakemake -n --configfile ../config/datasets.yaml
