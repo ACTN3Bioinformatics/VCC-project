@@ -1,8 +1,14 @@
 """
-Normalization rules
+Normalization and scaling rules
 """
 
 rule normalize:
+    """
+    Normalize counts and log-transform
+    - Total count normalization
+    - Log1p transformation
+    - Optional: regress out technical variables
+    """
     input:
         "{results}/{dataset}/filtered.h5ad"
     output:
@@ -12,7 +18,7 @@ rule normalize:
         log_transform = lambda wildcards: datasets_config[wildcards.dataset].get("log_transform", True),
         regress_out = lambda wildcards: datasets_config[wildcards.dataset].get("regress_out", ["total_counts", "pct_counts_mt"])
     log:
-        "logs/normalize/{dataset}.log"
+        "{logs}/normalize/{dataset}.log"
     conda:
         "../../environment.yml"
     threads: 4
@@ -23,6 +29,9 @@ rule normalize:
         "../../scripts/filter_normalize.py"
 
 rule scale:
+    """
+    Scale genes to unit variance and zero mean
+    """
     input:
         "{results}/{dataset}/normalized.h5ad"
     output:
@@ -31,7 +40,7 @@ rule scale:
         scale = lambda wildcards: datasets_config[wildcards.dataset].get("scale", True),
         max_value = 10
     log:
-        "logs/scale/{dataset}.log"
+        "{logs}/scale/{dataset}.log"
     conda:
         "../../environment.yml"
     threads: 4

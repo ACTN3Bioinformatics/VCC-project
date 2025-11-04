@@ -1,8 +1,12 @@
 """
-Batch integration rules
+Batch integration rules (optional)
 """
 
 rule batch_correction:
+    """
+    Correct batch effects using Harmony or BBKNN
+    Only runs if batch_correction: true in config
+    """
     input:
         "{results}/{dataset}/balanced.h5ad"
     output:
@@ -12,7 +16,7 @@ rule batch_correction:
         method = lambda wildcards: datasets_config[wildcards.dataset].get("integration_method", "harmony"),
         run = lambda wildcards: datasets_config[wildcards.dataset].get("batch_correction", False)
     log:
-        "logs/integrate/{dataset}.log"
+        "{logs}/integrate/{dataset}.log"
     conda:
         "../../environment.yml"
     threads: 8

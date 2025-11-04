@@ -6,14 +6,15 @@ import os
 from pathlib import Path
 import yaml
 
-configfile: "config/datasets.yaml"
-configfile: "config/config.yaml"
+configfile: "../config/datasets.yaml"
+configfile: "../config/config.yaml"
 
-with open("config/datasets.yaml", 'r') as f:
+with open("../config/datasets.yaml", 'r') as f:
     datasets_config = yaml.safe_load(f)
 
 DATASETS = list(datasets_config.keys())
 
+# Global variables - FIXED to match rules
 DATA_LOCAL = "data_local"
 RESULTS = "results"
 REPORTS = "reports"
@@ -61,7 +62,7 @@ rule clean:
         """
         rm -rf {RESULTS}/*
         rm -rf {REPORTS}/*
-        rm -rf logs/*
+        rm -rf {LOGS}/*
         rm -rf .snakemake/*
         echo "Cleaned all results and logs"
         """

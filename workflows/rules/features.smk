@@ -1,13 +1,21 @@
 """
 Feature engineering rules
+Extract biological features (pathways, TFs, etc.)
 """
 
 rule extract_features:
+    """
+    Extract biological features:
+    - Gene pathway membership
+    - TF targets
+    - Regulatory networks
+    - H1-hESC specific features
+    """
     input:
         h5ad = lambda wildcards: (
-            f"{{results}}/{{dataset}}/integrated.h5ad" 
+            "{results}/{dataset}/integrated.h5ad" 
             if datasets_config[wildcards.dataset].get("batch_correction", False)
-            else f"{{results}}/{{dataset}}/balanced.h5ad"
+            else "{results}/{dataset}/balanced.h5ad"
         )
     output:
         h5ad = "{results}/{dataset}/features.h5ad",
@@ -18,7 +26,7 @@ rule extract_features:
         use_regulatory_networks = True,
         databases = ["KEGG", "Reactome", "GO_Biological_Process"]
     log:
-        "logs/features/{dataset}.log"
+        "{logs}/features/{dataset}.log"
     conda:
         "../../environment.yml"
     threads: 4
@@ -29,6 +37,9 @@ rule extract_features:
         "../../scripts/feature_engineering.py"
 
 rule combine_features_splits:
+    """
+    Combine features with train/val/test splits
+    """
     input:
         features = "{results}/{dataset}/features.h5ad",
         train = "{results}/{dataset}/splits/train.h5ad",
@@ -37,7 +48,7 @@ rule combine_features_splits:
     output:
         final = "{results}/{dataset}/final.h5ad"
     log:
-        "logs/features/{dataset}_combine.log"
+        "{logs}/features/{dataset}_combine.log"
     conda:
         "../../environment.yml"
     threads: 2

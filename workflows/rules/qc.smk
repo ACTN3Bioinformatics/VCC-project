@@ -1,8 +1,14 @@
 """
-Quality control rules
+Quality control and filtering rules
 """
 
 rule filter_cells:
+    """
+    Filter low-quality cells based on QC metrics
+    - min/max genes detected
+    - mitochondrial content
+    - doublet detection
+    """
     input:
         h5ad = lambda wildcards: datasets_config[wildcards.dataset]["input_path"]
     output:
@@ -14,7 +20,7 @@ rule filter_cells:
         max_pct_mt = lambda wildcards: datasets_config[wildcards.dataset].get("max_pct_mt", 15),
         min_cells_per_gene = lambda wildcards: datasets_config[wildcards.dataset].get("min_cells_per_gene", 3)
     log:
-        "logs/qc/{dataset}_filter.log"
+        "{logs}/qc/{dataset}_filter.log"
     conda:
         "../../environment.yml"
     threads: 4
@@ -25,13 +31,16 @@ rule filter_cells:
         "../../scripts/filter_normalize.py"
 
 rule qc_report:
+    """
+    Generate comprehensive QC HTML report
+    """
     input:
         raw = lambda wildcards: datasets_config[wildcards.dataset]["input_path"],
         filtered = "{results}/{dataset}/filtered.h5ad"
     output:
         report = "{reports}/{dataset}/qc_report.html"
     log:
-        "logs/qc/{dataset}_report.log"
+        "{logs}/qc/{dataset}_report.log"
     conda:
         "../../environment.yml"
     threads: 2

@@ -1,13 +1,17 @@
 """
-Data splitting rules
+Data splitting rules for train/val/test
 """
 
 rule split_data:
+    """
+    Create train/validation/test splits
+    Leave-genes-out strategy for CV
+    """
     input:
         h5ad = lambda wildcards: (
-            f"{{results}}/{{dataset}}/integrated.h5ad" 
+            "{results}/{dataset}/integrated.h5ad" 
             if datasets_config[wildcards.dataset].get("batch_correction", False)
-            else f"{{results}}/{{dataset}}/balanced.h5ad"
+            else "{results}/{dataset}/balanced.h5ad"
         )
     output:
         train = "{results}/{dataset}/splits/train.h5ad",
@@ -21,7 +25,7 @@ rule split_data:
         gene_split = True,
         random_state = 42
     log:
-        "logs/split/{dataset}.log"
+        "{logs}/split/{dataset}.log"
     conda:
         "../../environment.yml"
     threads: 2

@@ -1,8 +1,12 @@
 """
 Class balancing rules
+Balance perturbation classes to prevent model bias
 """
 
 rule balance_classes:
+    """
+    Balance perturbation classes via downsampling
+    """
     input:
         "{results}/{dataset}/scaled.h5ad"
     output:
@@ -14,7 +18,7 @@ rule balance_classes:
         perturbation_key = lambda wildcards: datasets_config[wildcards.dataset].get("perturbation_key", "target_gene"),
         random_state = 42
     log:
-        "logs/balance/{dataset}.log"
+        "{logs}/balance/{dataset}.log"
     conda:
         "../../environment.yml"
     threads: 2
