@@ -158,11 +158,11 @@ rule test:
         print(f"Data directory: {DATA_LOCAL}")
         print(f"Results directory: {RESULTS}")
         print("="*60)
-        
+                
         # Check if files exist
         for dataset in ALL_DATASETS:
             input_path = config['datasets'][dataset].get('input_path')
             exists = "✓" if Path(input_path).exists() else "✗"
             print(f"{exists} {dataset}: {input_path}")
-        
+                
         print("="*60)
