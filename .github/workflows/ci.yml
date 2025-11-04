@@ -21,30 +21,83 @@ jobs:
       with:
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
-        channels: conda-forge,bioconda,defaults
-        channel-priority: flexible
-        activate-environment: vcc2025
         environment-file: environment.yml
+        activate-environment: vcc2025
+        miniforge-variant: Mambaforge
+        use-mamba: true
     
     - name: Verify environment
       shell: bash -l {0}
       run: |
         conda info
         conda list
+        python --version
+        snakemake --version
     
     - name: Lint with flake8
       shell: bash -l {0}
       run: |
-        # Ignore F821 (undefined name 'snakemake') as it's defined by Snakemake at runtime
-        flake8 scripts/ --count --select=E9,F63,F7,F82 --extend-ignore=F821 --show-source --statistics
+        mamba install flake8
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 scripts/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 scripts/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     
-    - name: Test with pytest
+    - name: Test script imports
       shell: bash -l {0}
       run: |
-        pytest tests/ -v
+        python -c "import sys; sys.path.append('scripts'); import utils"
     
-    - name: Snakemake dry-run
+    - name: Snakemake dry-run (from root directory)
       shell: bash -l {0}
       run: |
-        cd workflows
-        snakemake -n --configfile ../config/datasets.yaml
+        # IMPORTANT: Run from root directory, not workflows/
+        snakemake -n --cores 1
+    
+    - name: Test Snakemake test rule
+      shell: bash -l {0}
+      run: |
+        snakemake test --cores 1
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check documentation
+      run: |
+        # Check all markdown files exist
+        test -f README.md
+        test -f docs/QUICKSTART.md
+        test -f docs/TROUBLESHOOTING.md
+        test -f CONTRIBUTING.md
+        echo "✓ All documentation files present"
+    
+    - name: Verify project structure
+      run: |
+        # Check critical files
+        test -f Snakefile
+        test -f config/config.yaml
+        test -f config/datasets.yaml
+        test -f environment.yml
+        
+        # Check workflows/rules
+        test -d workflows/rules
+        test -f workflows/rules/qc.smk
+        test -f workflows/rules/normalize.smk
+        test -f workflows/rules/balance.smk
+        test -f workflows/rules/integrate.smk
+        test -f workflows/rules/split.smk
+        test -f workflows/rules/features.smk
+        test -f workflows/rules/download.smk
+        
+        # Check scripts
+        test -d scripts
+        test -f scripts/filter_normalize.py
+        test -f scripts/balance.py
+        test -f scripts/integration.py
+        test -f scripts/split_data.py
+        test -f scripts/feature_engineering.py
+        test -f scripts/utils.py
+        
+        echo "✓ Project structure verified"

@@ -28,13 +28,13 @@ rule extract_features:
     log:
         "logs/features/{dataset}.log"
     conda:
-        "../../environment.yml"
+        str(Path(workflow.basedir) / "environment.yml")
     threads: 4
     resources:
         mem_mb = 12000,
         runtime = 90
     script:
-        "../../scripts/feature_engineering.py"
+        str(Path(workflow.basedir) / "scripts" / "feature_engineering.py")
 
 
 rule combine_features_splits:
@@ -51,7 +51,7 @@ rule combine_features_splits:
     log:
         "logs/features/{dataset}_combine.log"
     conda:
-        "../../environment.yml"
+        str(Path(workflow.basedir) / "environment.yml")
     threads: 2
     script:
-        "../../scripts/combine_features.py"
+        str(Path(workflow.basedir) / "scripts" / "combine_features.py")

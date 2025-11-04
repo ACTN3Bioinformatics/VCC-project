@@ -7,7 +7,7 @@ rule split_data:
     Create train/validation/test splits
     Leave-genes-out strategy for CV
     """
-    input:
+input:
         h5ad = lambda wildcards: (
             f"results/{wildcards.dataset}/integrated.h5ad" 
             if config['datasets'][wildcards.dataset].get("batch_correction", False)
@@ -22,15 +22,15 @@ rule split_data:
         train_ratio = 0.7,
         val_ratio = 0.15,
         test_ratio = 0.15,
-        gene_split = True,  # Leave-genes-out CV
+        gene_split = True,
         random_state = 42,
         perturbation_key = lambda wildcards: config['datasets'][wildcards.dataset].get("perturbation_key", "target_gene")
     log:
         "logs/split/{dataset}.log"
     conda:
-        "../../environment.yml"
+        str(Path(workflow.basedir) / "environment.yml")
     threads: 2
     resources:
         mem_mb = 8000
     script:
-        "../../scripts/split_data.py"
+        str(Path(workflow.basedir) / "scripts" / "split_data.py")

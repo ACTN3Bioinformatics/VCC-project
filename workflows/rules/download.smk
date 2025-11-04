@@ -37,13 +37,14 @@ rule download_demo_data:
     log:
         "logs/download/demo_data.log"
     conda:
-        "../../environment.yml"
+        str(Path(workflow.basedir) / "environment.yml")
     threads: 1
     resources:
         mem_mb = 4000,
         runtime = 30  # 30 minutes timeout
     script:
-        "../../scripts/download_demo_data.py"
+        str(Path(workflow.basedir) / "scripts" / "download_demo_data.py")
+
 
 rule verify_data:
     """
@@ -59,6 +60,6 @@ rule verify_data:
     log:
         "logs/download/verify_demo.log"
     conda:
-        "../../environment.yml"
+        str(Path(workflow.basedir) / "environment.yml")
     script:
-        "../../scripts/verify_data.py"
+        str(Path(workflow.basedir) / "scripts" / "verify_data.py")

@@ -22,13 +22,13 @@ rule filter_cells:
     log:
         "logs/qc/{dataset}_filter.log"
     conda:
-        "../../environment.yml"
+        str(Path(workflow.basedir) / "environment.yml")
     threads: 4
     resources:
         mem_mb = lambda wildcards, attempt: 8000 * attempt,
         runtime = 120
     script:
-        "../../scripts/filter_normalize.py"
+        str(Path(workflow.basedir) / "scripts" / "filter_normalize.py")
 
 
 rule qc_report:
@@ -43,9 +43,9 @@ rule qc_report:
     log:
         "logs/qc/{dataset}_report.log"
     conda:
-        "../../environment.yml"
+        str(Path(workflow.basedir) / "environment.yml")
     threads: 2
     resources:
         mem_mb = 4000
     script:
-        "../../scripts/generate_qc_report.py"
+        str(Path(workflow.basedir) / "scripts" / "generate_qc_report.py")

@@ -20,10 +20,10 @@ rule balance_classes:
     log:
         "logs/balance/{dataset}.log"
     conda:
-        "../../environment.yml"
+        str(Path(workflow.basedir) / "environment.yml")
     threads: 2
     resources:
         mem_mb = 8000,
         runtime = 30
     script:
-        "../../scripts/balance.py"
+        str(Path(workflow.basedir) / "scripts" / "balance.py")

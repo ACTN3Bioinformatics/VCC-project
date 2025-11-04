@@ -18,10 +18,10 @@ rule batch_correction:
     log:
         "logs/integrate/{dataset}.log"
     conda:
-        "../../environment.yml"
+        str(Path(workflow.basedir) / "environment.yml")
     threads: 8
     resources:
         mem_mb = 16000,
         runtime = 120
     script:
-        "../../scripts/integration.py"
+        str(Path(workflow.basedir) / "scripts" / "integration.py")

@@ -9,7 +9,7 @@ rule normalize:
     - Log1p transformation
     - Optional: regress out technical variables
     """
-    input:
+input:
         "results/{dataset}/filtered.h5ad"
     output:
         "results/{dataset}/normalized.h5ad"
@@ -20,13 +20,13 @@ rule normalize:
     log:
         "logs/normalize/{dataset}.log"
     conda:
-        "../../environment.yml"
+        str(Path(workflow.basedir) / "environment.yml")
     threads: 4
     resources:
         mem_mb = 12000,
         runtime = 60
     script:
-        "../../scripts/filter_normalize.py"
+        str(Path(workflow.basedir) / "scripts" / "filter_normalize.py")
 
 
 rule scale:
@@ -43,10 +43,10 @@ rule scale:
     log:
         "logs/scale/{dataset}.log"
     conda:
-        "../../environment.yml"
+        str(Path(workflow.basedir) / "environment.yml")
     threads: 4
     resources:
         mem_mb = 12000,
         runtime = 30
     script:
-        "../../scripts/filter_normalize.py"
+        str(Path(workflow.basedir) / "scripts" / "filter_normalize.py")
