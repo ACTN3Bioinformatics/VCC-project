@@ -9,23 +9,24 @@ rule split_data:
     """
     input:
         h5ad = lambda wildcards: (
-            "{results}/{dataset}/integrated.h5ad" 
-            if datasets_config[wildcards.dataset].get("batch_correction", False)
-            else "{results}/{dataset}/balanced.h5ad"
+            f"results/{wildcards.dataset}/integrated.h5ad" 
+            if config['datasets'][wildcards.dataset].get("batch_correction", False)
+            else f"results/{wildcards.dataset}/balanced.h5ad"
         )
     output:
-        train = "{results}/{dataset}/splits/train.h5ad",
-        val = "{results}/{dataset}/splits/val.h5ad",
-        test = "{results}/{dataset}/splits/test.h5ad",
-        split_info = "{results}/{dataset}/splits/split_info.json"
+        train = "results/{dataset}/splits/train.h5ad",
+        val = "results/{dataset}/splits/val.h5ad",
+        test = "results/{dataset}/splits/test.h5ad",
+        split_info = "results/{dataset}/splits/split_info.json"
     params:
         train_ratio = 0.7,
         val_ratio = 0.15,
         test_ratio = 0.15,
-        gene_split = True,
-        random_state = 42
+        gene_split = True,  # Leave-genes-out CV
+        random_state = 42,
+        perturbation_key = lambda wildcards: config['datasets'][wildcards.dataset].get("perturbation_key", "target_gene")
     log:
-        "{logs}/split/{dataset}.log"
+        "logs/split/{dataset}.log"
     conda:
         "../../environment.yml"
     threads: 2

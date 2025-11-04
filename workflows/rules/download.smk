@@ -26,10 +26,10 @@ rule download_demo_data:
         h5ad = "data_local/demo/replogle_subset.h5ad",
         metadata = "data_local/demo/metadata.json"
     params:
-        # PRIMARY: Zenodo (scPerturb database) - TESTED AND WORKING
+        # PRIMARY: Zenodo (scPerturb database)
         url = config.get("demo_data_url", 
                         "https://zenodo.org/records/7041849/files/ReplogleWeissman2022_K562_essential.h5ad"),
-        # BACKUP: Figshare (original authors) - TESTED AND WORKING
+        # BACKUP: Figshare (original authors)
         alternative_url = config.get("demo_alternative_url",
                                     "https://plus.figshare.com/ndownloader/files/42444534"),
         max_cells = config.get("demo_max_cells", 10000),

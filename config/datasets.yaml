@@ -16,15 +16,13 @@ demo:
   target_sum: 10000        # Target sum for count normalization
   log_transform: true
   scale: true
-  regress_out:             # Technical variables to regress out
-    - "total_counts"
-    - "pct_counts_mt"
+  regress_out: []          # Variables to regress out (empty for demo)
   
   # Class balancing
   balance: true
   target_cells_per_perturbation: 100
   min_cells_per_perturbation: 10
-  perturbation_key: "target_gene_name"
+  perturbation_key: "gene"  # Will auto-detect if not found
   
   # Batch correction (not needed for demo - single experiment)
   batch_correction: false
@@ -35,13 +33,16 @@ demo:
   extract_features: true
   use_pathways: true
   use_tf_targets: true
+  use_regulatory_networks: false  # Too expensive for demo
 
+
+# Training dataset configuration (for VCC 2025 competition)
 training:
   # Input/Output
   input_path: "data_local/raw/vcc2025_training.h5ad"
   output_dir: "results/training"
   
-  # Quality Control
+  # Quality Control (stricter for training)
   min_genes: 200
   max_genes: 8000
   max_pct_mt: 10           # Stricter for training data
@@ -52,10 +53,9 @@ training:
   target_sum: 10000
   log_transform: true
   scale: true
-  regress_out:
+  regress_out:             # Regress out technical variation
     - "total_counts"
     - "pct_counts_mt"
-    - "n_genes_by_counts"
   
   # Class balancing
   balance: true
@@ -64,7 +64,7 @@ training:
   perturbation_key: "target_gene"
   
   # Batch correction
-  batch_correction: true
+  batch_correction: true   # VCC data likely has batches
   batch_key: "batch"
   integration_method: "harmony"
   
@@ -74,12 +74,13 @@ training:
   use_tf_targets: true
   use_regulatory_networks: true
 
+
+# Validation dataset (same processing as training)
 validation:
-  # Input/Output
   input_path: "data_local/raw/vcc2025_validation.h5ad"
   output_dir: "results/validation"
   
-  # Quality Control (same as training)
+  # QC (same as training)
   min_genes: 200
   max_genes: 8000
   max_pct_mt: 10
@@ -93,7 +94,6 @@ validation:
   regress_out:
     - "total_counts"
     - "pct_counts_mt"
-    - "n_genes_by_counts"
   
   # Class balancing
   balance: true
@@ -112,12 +112,13 @@ validation:
   use_tf_targets: true
   use_regulatory_networks: true
 
+
+# Test dataset (minimal processing to preserve real distribution)
 test:
-  # Input/Output
   input_path: "data_local/raw/vcc2025_test.h5ad"
   output_dir: "results/test"
   
-  # Quality Control (minimal for test - preserve unseen distribution)
+  # QC (minimal - preserve unseen distribution)
   min_genes: 200
   max_genes: 8000
   max_pct_mt: 15
@@ -128,10 +129,10 @@ test:
   target_sum: 10000
   log_transform: true
   scale: true
-  regress_out: []          # No regression for test set
+  regress_out: []          # NO regression for test set
   
   # Class balancing (NO balancing for test!)
-  balance: false
+  balance: false           # CRITICAL: Don't balance test set
   perturbation_key: "target_gene"
   
   # Batch correction (minimal)
@@ -141,40 +142,4 @@ test:
   extract_features: true
   use_pathways: true
   use_tf_targets: true
-
-public:
-  # Input/Output
-  input_path: "data_local/raw/public_datasets.h5ad"
-  output_dir: "results/public"
-  
-  # Quality Control (lenient for diverse public data)
-  min_genes: 200
-  max_genes: 7000
-  max_pct_mt: 20           # More lenient for public data
-  min_cells_per_gene: 5
-  
-  # Normalization
-  normalize: true
-  target_sum: 10000
-  log_transform: true
-  scale: true
-  regress_out:
-    - "total_counts"
-    - "pct_counts_mt"
-  
-  # Class balancing
-  balance: true
-  target_cells_per_perturbation: 200
-  min_cells_per_perturbation: 20
-  perturbation_key: "target_gene"
-  
-  # Batch correction (CRITICAL for public data!)
-  batch_correction: true
-  batch_key: "dataset_source"  # Different from experiment batch
-  integration_method: "harmony"
-  
-  # Feature engineering
-  extract_features: true
-  use_pathways: true
-  use_tf_targets: true
-  use_regulatory_networks: false  # May not be applicable
+  use_regulatory_networks: false

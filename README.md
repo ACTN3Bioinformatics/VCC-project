@@ -38,9 +38,9 @@ This pipeline transforms raw single-cell RNA-seq data with genetic perturbations
 git clone https://github.com/ACTN3Bioinformatics/VCC-project.git
 cd VCC-project
 
-# Create conda environment
-conda env create -f environment.yml
-conda activate vcc2025
+# Create mamba environment
+mamba env create -f environment.yml
+mamba activate vcc2025
 ```
 
 ### Demo Data Setup

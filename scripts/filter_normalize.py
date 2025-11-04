@@ -1,86 +1,317 @@
+#!/usr/bin/env python3
+"""
+Quality Control, Filtering, Normalization and Scaling
+
+This script handles three Snakemake rules:
+1. filter_cells - QC and filtering
+2. normalize - Count normalization and log transform
+3. scale - Z-score scaling
+
+The script detects which operation to perform based on input/output paths.
+"""
+
+import sys
+import logging
+import numpy as np
+import pandas as pd
 import scanpy as sc
-import argparse
-import yaml
+from pathlib import Path
 
-def load_config(path: str) -> dict:
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-def filter_and_normalize(adata, config):
-    # Load QC params
-    qc = config.get('qc', {})
-    min_genes = qc.get('min_genes', 200)
-    max_mt_pct = qc.get('max_mt_pct', 15)
 
-    # Calculate mitochondrial metrics and overall QC
-    sc.pp.calculate_qc_metrics(adata, qc_vars=['mt'], inplace=True)
-
-    # Filter cells
-    adata = adata[(adata.obs['n_genes_by_counts'] >= min_genes) &
-                  (adata.obs['pct_counts_mt'] <= max_mt_pct)].copy()
-
-    # Doublet detection (optional)
-    if config.get('doublet_detection', {}).get('enabled', True):
-        import scrublet as scr
-        scrub = scr.Scrublet(adata.X)
-        doublet_scores, predicted_doublets = scrub.scrub_doublets()
-        adata.obs['doublet_score'] = doublet_scores
-        adata.obs['predicted_doublet'] = predicted_doublets
-        adata = adata[~adata.obs['predicted_doublet']].copy()
-
-    # Normalize and log transform
-    sc.pp.normalize_total(adata, target_sum=1e4)
-    sc.pp.log1p(adata)
-
-    # Cell cycle adjustment: none/regress/covariate
-    cell_cycle_cfg = config.get('cell_cycle', {})
-    mode = cell_cycle_cfg.get('mode', 'none')
-
-    # Load provided gene lists or fallback to Scanpy defaults
-    s_genes = cell_cycle_cfg.get('s_phase_genes')
-    g2m_genes = cell_cycle_cfg.get('g2m_phase_genes')
-
-    if s_genes is None or g2m_genes is None:
-        import scanpy as sc_inner
-        # Use Scanpy default cell cycle genes
-        from scanpy.preprocess._utils import _get_default_s_genes, _get_default_g2m_genes
-        s_genes = s_genes if s_genes else _get_default_s_genes()
-        g2m_genes = g2m_genes if g2m_genes else _get_default_g2m_genes()
-
-    if mode != 'none':
-        sc.tl.score_genes_cell_cycle(adata, s_genes=s_genes, g2m_genes=g2m_genes)
-
-        if mode == 'regress':
-            # regress out cell cycle scores then scale
-            sc.pp.regress_out(adata, ['S_score', 'G2M_score'])
-            if config.get('scaling', {}).get('enabled', True):
-                sc.pp.scale(adata)
-
-        elif mode == 'covariate':
-            # Do not regress, keep scores as covariates (no scaling here)
-            pass
+def detect_operation(input_path, output_path):
+    """Detect which operation to perform based on file paths"""
+    input_path = Path(input_path)
+    output_path = Path(output_path)
+    
+    if 'filtered' in output_path.name:
+        return 'filter'
+    elif 'normalized' in output_path.name:
+        return 'normalize'
+    elif 'scaled' in output_path.name:
+        return 'scale'
     else:
-        # Default scaling if enabled and no cell cycle regression
-        if config.get('scaling', {}).get('enabled', True):
-            sc.pp.scale(adata)
+        raise ValueError(f"Cannot determine operation from paths: {input_path} -> {output_path}")
 
+
+def filter_cells(adata, min_genes=200, max_genes=6000, max_pct_mt=15, 
+                 min_cells_per_gene=3, qc_plots_dir=None):
+    """
+    Filter low-quality cells and genes
+    
+    Parameters:
+    -----------
+    adata : AnnData
+        Input dataset
+    min_genes : int
+        Minimum number of genes per cell
+    max_genes : int
+        Maximum number of genes per cell (doublet threshold)
+    max_pct_mt : float
+        Maximum mitochondrial percentage
+    min_cells_per_gene : int
+        Minimum cells expressing each gene
+    qc_plots_dir : str or Path
+        Directory to save QC plots
+    
+    Returns:
+    --------
+    adata : AnnData
+        Filtered dataset
+    """
+    logger.info("="*60)
+    logger.info("QUALITY CONTROL AND FILTERING")
+    logger.info("="*60)
+    logger.info(f"Input: {adata.n_obs:,} cells, {adata.n_vars:,} genes")
+    
+    # Calculate QC metrics if not already present
+    if 'n_genes_by_counts' not in adata.obs.columns:
+        logger.info("Computing QC metrics...")
+        
+        # Identify mitochondrial genes
+        adata.var['mt'] = adata.var_names.str.startswith('MT-')
+        
+        sc.pp.calculate_qc_metrics(
+            adata, 
+            qc_vars=['mt'], 
+            percent_top=None, 
+            log1p=False, 
+            inplace=True
+        )
+        logger.info("✓ QC metrics computed")
+    else:
+        logger.info("✓ QC metrics already present")
+    
+    # Print summary statistics BEFORE filtering
+    logger.info("\nQC Statistics (before filtering):")
+    logger.info(f"  Genes per cell: {adata.obs['n_genes_by_counts'].median():.0f} (median)")
+    logger.info(f"  Total counts: {adata.obs['total_counts'].median():.0f} (median)")
+    logger.info(f"  MT content: {adata.obs['pct_counts_mt'].median():.2f}% (median)")
+    
+    # Count cells before filtering
+    n_cells_before = adata.n_obs
+    n_genes_before = adata.n_vars
+    
+    # Filter cells
+    logger.info("\nApplying cell filters:")
+    logger.info(f"  min_genes: {min_genes}")
+    logger.info(f"  max_genes: {max_genes}")
+    logger.info(f"  max_pct_mt: {max_pct_mt}%")
+    
+    # Create filter masks
+    gene_filter = (adata.obs['n_genes_by_counts'] >= min_genes) & \
+                  (adata.obs['n_genes_by_counts'] <= max_genes)
+    mt_filter = adata.obs['pct_counts_mt'] <= max_pct_mt
+    
+    # Apply filters
+    adata = adata[gene_filter & mt_filter, :].copy()
+    
+    logger.info(f"  Cells passing filters: {adata.n_obs:,} ({100*adata.n_obs/n_cells_before:.1f}%)")
+    logger.info(f"  Cells removed: {n_cells_before - adata.n_obs:,}")
+    
+    # Filter genes
+    logger.info(f"\nApplying gene filter (min_cells: {min_cells_per_gene}):")
+    sc.pp.filter_genes(adata, min_cells=min_cells_per_gene)
+    
+    logger.info(f"  Genes passing filter: {adata.n_vars:,} ({100*adata.n_vars/n_genes_before:.1f}%)")
+    logger.info(f"  Genes removed: {n_genes_before - adata.n_vars:,}")
+    
+    # Final summary
+    logger.info("\n" + "="*60)
+    logger.info("FILTERING COMPLETE")
+    logger.info("="*60)
+    logger.info(f"Final dataset: {adata.n_obs:,} cells, {adata.n_vars:,} genes")
+    logger.info(f"Retention rate: {100*adata.n_obs/n_cells_before:.1f}% cells, "
+                f"{100*adata.n_vars/n_genes_before:.1f}% genes")
+    
+    # Save QC plots if directory specified
+    if qc_plots_dir:
+        qc_plots_dir = Path(qc_plots_dir)
+        qc_plots_dir.mkdir(parents=True, exist_ok=True)
+        
+        logger.info(f"\nSaving QC plots to {qc_plots_dir}")
+        
+        # Violin plots
+        sc.pl.violin(adata, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt'],
+                     jitter=0.4, multi_panel=True, save='_after_filter.png', show=False)
+        
+        # Scatter plots
+        sc.pl.scatter(adata, x='total_counts', y='n_genes_by_counts', 
+                      save='_counts_vs_genes.png', show=False)
+        sc.pl.scatter(adata, x='total_counts', y='pct_counts_mt',
+                      save='_counts_vs_mt.png', show=False)
+        
+        logger.info("✓ QC plots saved")
+    
     return adata
 
+
+def normalize_counts(adata, target_sum=1e4, log_transform=True, regress_out=None):
+    """
+    Normalize counts and optionally log-transform
+    
+    Parameters:
+    -----------
+    adata : AnnData
+        Filtered dataset
+    target_sum : float
+        Target sum for total-count normalization
+    log_transform : bool
+        Whether to apply log1p transformation
+    regress_out : list of str
+        Variables to regress out (optional)
+    
+    Returns:
+    --------
+    adata : AnnData
+        Normalized dataset
+    """
+    logger.info("="*60)
+    logger.info("NORMALIZATION")
+    logger.info("="*60)
+    
+    # Store raw counts
+    if 'counts' not in adata.layers:
+        logger.info("Storing raw counts in layer 'counts'")
+        adata.layers['counts'] = adata.X.copy()
+    
+    # Total-count normalization
+    logger.info(f"Normalizing to {target_sum:,.0f} counts per cell...")
+    sc.pp.normalize_total(adata, target_sum=target_sum)
+    logger.info("✓ Total-count normalization complete")
+    
+    # Log transformation
+    if log_transform:
+        logger.info("Applying log1p transformation...")
+        sc.pp.log1p(adata)
+        logger.info("✓ Log transformation complete")
+    
+    # Store normalized counts
+    adata.layers['normalized'] = adata.X.copy()
+    
+    # Regress out technical variables (optional)
+    if regress_out and len(regress_out) > 0:
+        logger.info(f"Regressing out: {', '.join(regress_out)}")
+        
+        # Check if variables exist
+        missing_vars = [v for v in regress_out if v not in adata.obs.columns]
+        if missing_vars:
+            logger.warning(f"Variables not found, skipping: {missing_vars}")
+            regress_out = [v for v in regress_out if v in adata.obs.columns]
+        
+        if regress_out:
+            sc.pp.regress_out(adata, regress_out)
+            logger.info("✓ Regression complete")
+    
+    logger.info("\n" + "="*60)
+    logger.info("NORMALIZATION COMPLETE")
+    logger.info("="*60)
+    
+    return adata
+
+
+def scale_data(adata, max_value=10):
+    """
+    Scale data to unit variance and zero mean
+    
+    Parameters:
+    -----------
+    adata : AnnData
+        Normalized dataset
+    max_value : float
+        Clip values to [-max_value, max_value]
+    
+    Returns:
+    --------
+    adata : AnnData
+        Scaled dataset
+    """
+    logger.info("="*60)
+    logger.info("SCALING")
+    logger.info("="*60)
+    
+    # Store pre-scaled data
+    if 'normalized' in adata.layers and 'scaled' not in adata.layers:
+        # Scaling will modify X, so we're good
+        pass
+    
+    # Scale
+    logger.info(f"Scaling to zero mean, unit variance (max_value={max_value})...")
+    sc.pp.scale(adata, max_value=max_value)
+    logger.info("✓ Scaling complete")
+    
+    # Store scaled data
+    adata.layers['scaled'] = adata.X.copy()
+    
+    logger.info("\n" + "="*60)
+    logger.info("SCALING COMPLETE")
+    logger.info("="*60)
+    
+    return adata
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Filter and normalize VCC dataset with cell cycle options")
-    parser.add_argument("--dataset_name", required=True, help="Name of dataset")
-    parser.add_argument("--config", required=True, help="Path to YAML config with parameters")
-    args = parser.parse_args()
+    """Main execution function"""
+    
+    # Get parameters from snakemake
+    if 'snakemake' in globals():
+        input_path = snakemake.input.h5ad if hasattr(snakemake.input, 'h5ad') else snakemake.input[0]
+        output_path = snakemake.output.h5ad if hasattr(snakemake.output, 'h5ad') else snakemake.output[0]
+        
+        # Detect operation
+        operation = detect_operation(input_path, output_path)
+        
+        logger.info(f"Operation: {operation}")
+        logger.info(f"Input: {input_path}")
+        logger.info(f"Output: {output_path}")
+        
+        # Load data
+        logger.info("\nLoading data...")
+        adata = sc.read_h5ad(input_path)
+        logger.info(f"✓ Loaded: {adata.n_obs:,} cells, {adata.n_vars:,} genes")
+        
+        # Execute appropriate operation
+        if operation == 'filter':
+            qc_plots_dir = snakemake.output.qc_plots if hasattr(snakemake.output, 'qc_plots') else None
+            adata = filter_cells(
+                adata,
+                min_genes=snakemake.params.min_genes,
+                max_genes=snakemake.params.max_genes,
+                max_pct_mt=snakemake.params.max_pct_mt,
+                min_cells_per_gene=snakemake.params.min_cells_per_gene,
+                qc_plots_dir=qc_plots_dir
+            )
+        
+        elif operation == 'normalize':
+            adata = normalize_counts(
+                adata,
+                target_sum=snakemake.params.target_sum,
+                log_transform=snakemake.params.log_transform,
+                regress_out=snakemake.params.get('regress_out', [])
+            )
+        
+        elif operation == 'scale':
+            adata = scale_data(
+                adata,
+                max_value=snakemake.params.max_value
+            )
+        
+        # Save output
+        logger.info(f"\nSaving to {output_path}")
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        adata.write_h5ad(output_path, compression='gzip')
+        logger.info("✓ Saved successfully")
+        
+    else:
+        logger.error("This script must be run via Snakemake")
+        sys.exit(1)
 
-    config_all = load_config(args.config)
-    dataset_cfg = config_all['datasets'][args.dataset_name]
-
-    adata = sc.read_h5ad(dataset_cfg['input_file'])
-    adata_filtered = filter_and_normalize(adata, dataset_cfg)
-
-    output_file = dataset_cfg.get('output_file', f"output/{args.dataset_name}_filtered.h5ad")
-    adata_filtered.write_h5ad(output_file)
-    print(f"Filtered and normalized data saved to: {output_file}")
 
 if __name__ == "__main__":
     main()

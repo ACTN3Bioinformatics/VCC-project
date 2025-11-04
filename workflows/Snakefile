@@ -1,24 +1,40 @@
 """
 VCC-project Main Snakemake Workflow
+Single-cell CRISPR perturbation data processing pipeline
 """
 
 import os
 from pathlib import Path
+
+# ============================================================================
+# Configuration
+# ============================================================================
+
+configfile: "config/config.yaml"
+
+# Load datasets configuration from separate file
 import yaml
+with open("config/datasets.yaml", 'r') as f:
+    datasets = yaml.safe_load(f)
 
-configfile: "../config/datasets.yaml"
-configfile: "../config/config.yaml"
+# Merge into main config
+config['datasets'] = datasets
 
-with open("../config/datasets.yaml", 'r') as f:
-    datasets_config = yaml.safe_load(f)
+# Get list of datasets to process
+DATASETS = list(config['datasets'].keys())
 
-DATASETS = list(datasets_config.keys())
+# ============================================================================
+# Global variables
+# ============================================================================
 
-# Global variables - FIXED to match rules
-DATA_LOCAL = "data_local"
-RESULTS = "results"
-REPORTS = "reports"
-LOGS = "logs"
+DATA_LOCAL = config.get("data_local_dir", "data_local")
+RESULTS = config.get("results_dir", "results")
+REPORTS = config.get("reports_dir", "reports")
+LOGS = config.get("logs_dir", "logs")
+
+# ============================================================================
+# Include rules
+# ============================================================================
 
 include: "rules/download.smk"
 include: "rules/qc.smk"
@@ -28,41 +44,78 @@ include: "rules/integrate.smk"
 include: "rules/split.smk"
 include: "rules/features.smk"
 
+# ============================================================================
+# Target rules
+# ============================================================================
+
 rule all:
+    """
+    Default target: process all configured datasets through complete pipeline
+    """
     input:
-        expand("{results}/{dataset}/final.h5ad", 
-               results=RESULTS, 
-               dataset=DATASETS),
-        expand("{reports}/{dataset}/qc_report.html",
-               reports=REPORTS,
-               dataset=DATASETS),
-        expand("{results}/{dataset}/features.h5ad",
-               results=RESULTS,
-               dataset=DATASETS)
+        # Final outputs for each dataset
+        expand("results/{dataset}/final.h5ad", dataset=DATASETS),
+        # QC reports
+        expand("reports/{dataset}/qc_report.html", dataset=DATASETS)
+
 
 rule download_all:
+    """
+    Download all demo datasets
+    """
     input:
-        expand("{data_local}/demo/replogle_subset.h5ad", 
-               data_local=DATA_LOCAL)
+        expand("{data_local}/demo/replogle_subset.h5ad", data_local=DATA_LOCAL)
+
 
 rule qc_all:
+    """
+    Run QC on all datasets
+    """
     input:
-        expand("{results}/{dataset}/filtered.h5ad",
-               results=RESULTS,
-               dataset=DATASETS)
+        expand("results/{dataset}/filtered.h5ad", dataset=DATASETS)
+
 
 rule balance_all:
+    """
+    Balance all datasets
+    """
     input:
-        expand("{results}/{dataset}/balanced.h5ad",
-               results=RESULTS,
-               dataset=DATASETS)
+        expand("results/{dataset}/balanced.h5ad", dataset=DATASETS)
+
+
+rule features_all:
+    """
+    Extract features for all datasets
+    """
+    input:
+        expand("results/{dataset}/features.h5ad", dataset=DATASETS)
+
+
+# ============================================================================
+# Utility rules
+# ============================================================================
 
 rule clean:
+    """
+    Remove all generated files (use with caution!)
+    """
     shell:
         """
-        rm -rf {RESULTS}/*
-        rm -rf {REPORTS}/*
-        rm -rf {LOGS}/*
+        rm -rf results/*
+        rm -rf reports/*
+        rm -rf logs/*
         rm -rf .snakemake/*
-        echo "Cleaned all results and logs"
+        echo "✓ Cleaned all results and logs"
+        """
+
+
+rule clean_temp:
+    """
+    Remove temporary files only
+    """
+    shell:
+        """
+        find results -name "*.tmp" -delete
+        find {DATA_LOCAL} -name "*.tmp" -delete
+        echo "✓ Cleaned temporary files"
         """
