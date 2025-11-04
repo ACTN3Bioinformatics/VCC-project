@@ -10,11 +10,11 @@ from pathlib import Path
 # Configuration
 # ============================================================================
 
-configfile: "config/config.yaml"
+configfile: "../config/config.yaml"
 
 # Load datasets configuration from separate file
 import yaml
-with open("config/datasets.yaml", 'r') as f:
+with open("../config/datasets.yaml", 'r') as f:
     datasets = yaml.safe_load(f)
 
 # Merge into main config
