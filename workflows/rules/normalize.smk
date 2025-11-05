@@ -9,7 +9,7 @@ rule normalize:
     - Log1p transformation
     - Optional: regress out technical variables
     """
-input:
+    input:
         "results/{dataset}/filtered.h5ad"
     output:
         "results/{dataset}/normalized.h5ad"

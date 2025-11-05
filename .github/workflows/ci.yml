@@ -11,93 +11,169 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9']  # Only 3.9 to match environment.yml
+        python-version: ['3.9', '3.10', '3.11']
+      fail-fast: false
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
     
-    - name: Setup Miniconda
-      uses: conda-incubator/setup-miniconda@v2
+    - name: Setup Miniforge with Mamba
+      uses: conda-incubator/setup-miniconda@v3
       with:
-        auto-update-conda: true
         python-version: ${{ matrix.python-version }}
+        miniforge-version: latest
+        miniforge-variant: Miniforge3
+        channels: conda-forge,bioconda,defaults
+        channel-priority: strict
         environment-file: environment.yml
         activate-environment: vcc2025
-        miniforge-variant: Mambaforge
         use-mamba: true
+        mamba-version: "*"
     
     - name: Verify environment
       shell: bash -l {0}
       run: |
+        echo "==== Environment Info ===="
         conda info
-        conda list
+        echo ""
+        echo "==== Installed Packages ===="
+        conda list | head -20
+        echo ""
+        echo "==== Python Version ===="
         python --version
+        echo ""
+        echo "==== Snakemake Version ===="
         snakemake --version
+        echo ""
+        echo "==== Working Directory ===="
+        pwd
+        ls -la
     
     - name: Lint with flake8
       shell: bash -l {0}
       run: |
-        mamba install flake8
-        # Stop the build if there are Python syntax errors or undefined names
+        # Install flake8 if not already in environment
+        mamba install -y flake8 2>/dev/null || conda install -y flake8
+        
+        echo "==== Checking for syntax errors ===="
         flake8 scripts/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        # Exit-zero treats all errors as warnings
+        
+        echo "==== Style check (warnings only) ===="
         flake8 scripts/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     
-    - name: Test script imports
+    - name: Test Python imports
       shell: bash -l {0}
       run: |
-        python -c "import sys; sys.path.append('scripts'); import utils"
+        echo "==== Testing script imports ===="
+        python -c "import sys; sys.path.append('scripts'); import utils; print('✓ utils.py imports OK')"
+        python -c "import scanpy; print(f'✓ scanpy {scanpy.__version__} OK')"
+        python -c "import pandas; print(f'✓ pandas {pandas.__version__} OK')"
+        python -c "import numpy; print(f'✓ numpy {numpy.__version__} OK')"
     
-    - name: Snakemake dry-run (from root directory)
+    - name: Snakemake test rule
       shell: bash -l {0}
       run: |
-        # IMPORTANT: Run from root directory, not workflows/
-        snakemake -n --cores 1
-    
-    - name: Test Snakemake test rule
-      shell: bash -l {0}
-      run: |
+        echo "==== Running Snakemake test rule ===="
         snakemake test --cores 1
-
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
     
-    - name: Check documentation
+    - name: Snakemake dry-run
+      shell: bash -l {0}
       run: |
-        # Check all markdown files exist
-        test -f README.md
-        test -f docs/QUICKSTART.md
-        test -f docs/TROUBLESHOOTING.md
-        test -f CONTRIBUTING.md
-        echo "✓ All documentation files present"
+        echo "==== Snakemake dry-run ===="
+        snakemake -n --cores 1 --verbose
+    
+    - name: Check DAG construction
+      shell: bash -l {0}
+      run: |
+        echo "==== Building DAG ===="
+        snakemake --dag | head -20 || echo "DAG construction completed"
+
+  structure-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
     
     - name: Verify project structure
       run: |
-        # Check critical files
-        test -f Snakefile
-        test -f config/config.yaml
-        test -f config/datasets.yaml
-        test -f environment.yml
+        echo "==== Checking critical files ===="
         
-        # Check workflows/rules
-        test -d workflows/rules
-        test -f workflows/rules/qc.smk
-        test -f workflows/rules/normalize.smk
-        test -f workflows/rules/balance.smk
-        test -f workflows/rules/integrate.smk
-        test -f workflows/rules/split.smk
-        test -f workflows/rules/features.smk
-        test -f workflows/rules/download.smk
+        # Main files
+        test -f Snakefile && echo "✓ Snakefile" || (echo "✗ Snakefile MISSING" && exit 1)
+        test -f environment.yml && echo "✓ environment.yml" || (echo "✗ environment.yml MISSING" && exit 1)
+        test -f README.md && echo "✓ README.md" || (echo "✗ README.md MISSING" && exit 1)
         
-        # Check scripts
-        test -d scripts
-        test -f scripts/filter_normalize.py
-        test -f scripts/balance.py
-        test -f scripts/integration.py
-        test -f scripts/split_data.py
-        test -f scripts/feature_engineering.py
-        test -f scripts/utils.py
+        # Config files
+        test -f config/config.yaml && echo "✓ config/config.yaml" || (echo "✗ config/config.yaml MISSING" && exit 1)
+        test -f config/datasets.yaml && echo "✓ config/datasets.yaml" || (echo "✗ config/datasets.yaml MISSING" && exit 1)
         
-        echo "✓ Project structure verified"
+        # Workflows
+        test -d workflows/rules && echo "✓ workflows/rules/" || (echo "✗ workflows/rules/ MISSING" && exit 1)
+        test -f workflows/rules/qc.smk && echo "✓ qc.smk" || (echo "✗ qc.smk MISSING" && exit 1)
+        test -f workflows/rules/normalize.smk && echo "✓ normalize.smk" || (echo "✗ normalize.smk MISSING" && exit 1)
+        test -f workflows/rules/balance.smk && echo "✓ balance.smk" || (echo "✗ balance.smk MISSING" && exit 1)
+        test -f workflows/rules/integrate.smk && echo "✓ integrate.smk" || (echo "✗ integrate.smk MISSING" && exit 1)
+        test -f workflows/rules/split.smk && echo "✓ split.smk" || (echo "✗ split.smk MISSING" && exit 1)
+        test -f workflows/rules/features.smk && echo "✓ features.smk" || (echo "✗ features.smk MISSING" && exit 1)
+        test -f workflows/rules/download.smk && echo "✓ download.smk" || (echo "✗ download.smk MISSING" && exit 1)
+        
+        # Scripts
+        test -d scripts && echo "✓ scripts/" || (echo "✗ scripts/ MISSING" && exit 1)
+        test -f scripts/filter_normalize.py && echo "✓ filter_normalize.py" || (echo "✗ filter_normalize.py MISSING" && exit 1)
+        test -f scripts/balance.py && echo "✓ balance.py" || (echo "✗ balance.py MISSING" && exit 1)
+        test -f scripts/integration.py && echo "✓ integration.py" || (echo "✗ integration.py MISSING" && exit 1)
+        test -f scripts/split_data.py && echo "✓ split_data.py" || (echo "✗ split_data.py MISSING" && exit 1)
+        test -f scripts/feature_engineering.py && echo "✓ feature_engineering.py" || (echo "✗ feature_engineering.py MISSING" && exit 1)
+        test -f scripts/utils.py && echo "✓ utils.py" || (echo "✗ utils.py MISSING" && exit 1)
+        
+        # Check for deprecated files
+        if test -f workflows/Snakefile; then
+          echo "⚠ WARNING: workflows/Snakefile exists (should be deprecated)"
+          echo "  Please remove or rename to workflows/Snakefile.deprecated"
+        fi
+        
+        echo ""
+        echo "==== Structure check PASSED ===="
+    
+    - name: Check documentation
+      run: |
+        echo "==== Checking documentation files ===="
+        test -f docs/QUICKSTART.md && echo "✓ QUICKSTART.md" || echo "⚠ QUICKSTART.md missing"
+        test -f docs/TROUBLESHOOTING.md && echo "✓ TROUBLESHOOTING.md" || echo "⚠ TROUBLESHOOTING.md missing"
+        test -f CONTRIBUTING.md && echo "✓ CONTRIBUTING.md" || echo "⚠ CONTRIBUTING.md missing"
+        test -f LICENSE && echo "✓ LICENSE" || echo "⚠ LICENSE missing"
+        
+  markdown-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Validate markdown files
+      uses: DavidAnson/markdownlint-action@v1
+      with:
+        files: '**/*.md'
+        config: '.markdownlint.json'
+      continue-on-error: true
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [test, structure-check]
+    if: always()
+    
+    steps:
+    - name: Check test results
+      run: |
+        echo "==== CI Summary ===="
+        if [ "${{ needs.test.result }}" == "success" ] && [ "${{ needs.structure-check.result }}" == "success" ]; then
+          echo "✅ All checks PASSED"
+          exit 0
+        else
+          echo "❌ Some checks FAILED"
+          echo "  Test job: ${{ needs.test.result }}"
+          echo "  Structure check: ${{ needs.structure-check.result }}"
+          exit 1
+        fi

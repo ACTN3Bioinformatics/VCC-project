@@ -6,7 +6,7 @@ channels:
 
 dependencies:
   # Python
-  - python=3.9
+  - python>=3.9
 
   # Workflow management
   - snakemake>=7.32.0

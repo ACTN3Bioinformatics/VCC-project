@@ -1,6 +1,8 @@
 # VCC-project: Single-Cell CRISPR Perturbation Pipeline
 
+[![CI](https://github.com/ACTN3Bioinformatics/VCC-project/actions/workflows/ci.yml/badge.svg)](https://github.com/ACTN3Bioinformatics/VCC-project/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Snakemake](https://img.shields.io/badge/snakemake-≥7.0-brightgreen.svg)](https://snakemake.readthedocs.io)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17503792.svg)](https://doi.org/10.5281/zenodo.17503792)
@@ -66,7 +68,10 @@ snakemake results/demo/balanced.h5ad --cores 4          # Through balancing
 snakemake results/demo/final.h5ad --cores 4             # Complete pipeline
 
 # Dry-run to see execution plan
-snakemake -n --configfile config/datasets.yaml
+snakemake -n
+
+# Test configuration
+snakemake test --cores 1
 
 # Generate workflow visualization
 snakemake --dag | dot -Tpng > docs/workflow_diagram.png
@@ -246,6 +251,9 @@ pytest tests/test_qc.py -v
 
 # With coverage
 pytest --cov=scripts tests/
+
+# Test CI locally
+./test_ci_locally.sh
 ```
 
 ## 🤝 Contributing

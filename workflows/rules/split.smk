@@ -7,7 +7,7 @@ rule split_data:
     Create train/validation/test splits
     Leave-genes-out strategy for CV
     """
-input:
+    input:
         h5ad = lambda wildcards: (
             f"results/{wildcards.dataset}/integrated.h5ad" 
             if config['datasets'][wildcards.dataset].get("batch_correction", False)
