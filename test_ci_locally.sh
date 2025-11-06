@@ -111,7 +111,7 @@ fi
 print_section "Test 3: Code Quality (flake8)"
 
 if command -v flake8 &> /dev/null; then
-    flake8 scripts/ --count --select=E9,F63,F7,F82 --show-source --statistics
+    flake8 scripts/ --count --select=E9,F63,F7,F82 --builtins="snakemake" --show-source --statistics
     if [ $? -eq 0 ]; then
         print_success "No syntax errors"
     else

@@ -7,8 +7,8 @@ Get up and running with VCC-project in 5 minutes!
 # Check Python version (need 3.9+)
 python --version
 
-# Check conda
-conda --version
+# Check mamba
+mamba --version
 ```
 
 ## Installation (2 minutes)
@@ -18,10 +18,10 @@ git clone https://github.com/ACTN3Bioinformatics/VCC-project.git
 cd VCC-project
 
 # 2. Create environment
-conda env create -f environment.yml
+mamba env create -f environment.yml
 
 # 3. Activate environment
-conda activate vcc2025
+mamba activate vcc2025
 ```
 
 ## Run Demo Pipeline (3 minutes)

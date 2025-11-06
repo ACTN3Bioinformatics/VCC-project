@@ -16,7 +16,7 @@ rule download_demo_data:
     - Zenodo record 7041849 (scPerturb curated, PRIMARY)
     - Figshare (original authors, BACKUP)
     
-    Original: 1.44 GB, ~188k cells, ~2000 perturbations
+    Original: 1.55 GB, ~188k cells, ~2000 perturbations
     Output: ~500MB, ~10k cells, ~150 perturbations (subsetted)
     
     Processing time: ~5-10 minutes (download + subset)

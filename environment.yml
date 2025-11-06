@@ -6,26 +6,29 @@ channels:
 
 dependencies:
   # Python
-  - python>=3.9
+  - python=3.10  # Lock to 3.10 for best compatibility
+  
+  # Core scientific stack - CRITICAL: Lock numpy to avoid conflicts
+  - numpy>=1.23,<1.27  # Compatible with both scanpy and tables
+  - pandas>=2.0.0
+  - scipy>=1.10.0
 
   # Workflow management
   - snakemake>=7.32.0
   - snakemake-minimal>=7.32.0
 
-  # Single-cell analysis
-  - scanpy>=1.9.3
-  - anndata>=0.9.0
-  - scvi-tools>=1.0.0
+  # Single-cell analysis - Pin versions for stability
+  - scanpy>=1.9.3,<1.10
+  - anndata>=0.9.0,<0.11
+  - scvi-tools>=1.0.0,<1.2
   
   # Data processing
-  - pandas>=2.0.0
-  - numpy>=1.24.0
-  - scipy>=1.10.0
-  - scikit-learn>=1.2.0
+  - scikit-learn>=1.2.0,<1.4
+  - statsmodels>=0.14.0
   
   # Visualization
-  - matplotlib>=3.7.0
-  - seaborn>=0.12.0
+  - matplotlib>=3.7.0,<3.9
+  - seaborn>=0.12.0,<0.14
   - plotly>=5.14.0
   
   # Batch correction
@@ -36,14 +39,15 @@ dependencies:
   - goatools>=1.3.1
   - gseapy>=1.0.4
   
-  # File handling
+  # File handling - Use older tables to avoid numpy conflict
   - h5py>=3.8.0
-  - tables>=3.8.0
+  - pytables>=3.8.0,<3.9  # CRITICAL: Avoid 3.9.x which needs numpy>=1.23.5
   
   # Utilities
   - tqdm>=4.65.0
   - pyyaml>=6.0
   - click>=8.1.0
+  - requests>=2.31.0
   
   # Testing
   - pytest>=7.3.0
@@ -56,14 +60,16 @@ dependencies:
   # Notebook support
   - jupyter>=1.0.0
   - ipykernel>=6.22.0
+  - ipywidgets>=8.0.0
   
   # Code quality
   - black>=23.3.0
   - flake8>=6.0.0
   - isort>=5.12.0
   
-  # pip packages
+  # pip packages (install after conda packages)
   - pip>=23.0
   - pip:
     - leidenalg>=0.9.1
     - scrublet>=0.2.3
+    - session-info>=1.0.0

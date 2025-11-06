@@ -7,7 +7,7 @@ Source:
 - Primary: Zenodo (scPerturb database)
 - Backup: Figshare (original authors)
 
-Original size: 1.44 GB (~188k cells, ~2000 perturbations)
+Original size: 1.55 GB (~188k cells, ~2000 perturbations)
 After subsetting: ~500MB (~10k cells, ~150 perturbations)
 
 Optimized for 16GB RAM systems (AMD Ryzen 5 7535HS)
@@ -202,7 +202,7 @@ def main():
         logger.info("STEP 1: DOWNLOADING DEMO DATA")
         logger.info("="*60)
         logger.info("Source: Replogle et al. 2022 - K562 Essential Perturb-seq")
-        logger.info("File size: ~1.44 GB (will be subsetted to ~500MB)")
+        logger.info("File size: ~1.55 GB (will be subsetted to ~500MB)")
         
         download_success = download_file_with_progress(url, temp_h5ad)
         
