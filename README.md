@@ -5,7 +5,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Snakemake](https://img.shields.io/badge/snakemake-≥7.0-brightgreen.svg)](https://snakemake.readthedocs.io)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17503792.svg)](https://doi.org/10.5281/zenodo.17503792)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17508488.svg)](https://doi.org/10.5281/zenodo.17508488)
 
 A reproducible computational pipeline for processing and analyzing single-cell RNA-seq data with CRISPR perturbations, designed for the Virtual Cell Challenge 2025.
 

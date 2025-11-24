@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Quality Control, Filtering, Normalization and Scaling
+Quality Control, Filtering, Normalization and Scaling - MEMORY EFFICIENT
 
 This script handles three Snakemake rules:
 1. filter_cells - QC and filtering
@@ -8,6 +8,11 @@ This script handles three Snakemake rules:
 3. scale - Z-score scaling
 
 The script detects which operation to perform based on input/output paths.
+
+The script supports backed mode for large files:
+- Automatically detects if file is too large for RAM
+- Uses backed='r' mode to avoid loading entire matrix
+- Converts to in-memory only after filtering reduces size
 """
 
 import sys
@@ -23,6 +28,53 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def estimate_memory_requirement(file_path):
+    """
+    Estimate memory required to load file
+    Returns size in GB
+    """
+    file_size_gb = Path(file_path).stat().st_size / 1e9
+    # Rough estimate: file size * 2 (uncompressed + working memory)
+    estimated_ram_gb = file_size_gb * 2
+    return estimated_ram_gb
+
+
+def load_data_smart(file_path, max_ram_gb=8.0):
+    """
+    Smart data loading based on file size
+    
+    - Small files (< 4GB estimated RAM): load directly
+    - Large files (> 4GB estimated RAM): use backed mode
+    
+    Parameters:
+    -----------
+    file_path : str
+        Path to h5ad file
+    max_ram_gb : float
+        Maximum RAM to use for loading (default: 8GB for 16GB system)
+    
+    Returns:
+    --------
+    adata : AnnData
+        Loaded data (may be in backed mode)
+    is_backed : bool
+        Whether data was loaded in backed mode
+    """
+    estimated_ram = estimate_memory_requirement(file_path)
+    logger.info(f"File size: {Path(file_path).stat().st_size / 1e9:.2f} GB")
+    logger.info(f"Estimated RAM needed: {estimated_ram:.2f} GB")
+    
+    if estimated_ram > max_ram_gb:
+        logger.warning(f"File requires > {max_ram_gb:.1f} GB RAM")
+        logger.info("Using BACKED MODE (read from disk, minimal RAM)")
+        adata = sc.read_h5ad(file_path, backed='r')
+        return adata, True
+    else:
+        logger.info("Loading into memory...")
+        adata = sc.read_h5ad(file_path)
+        return adata, False
 
 
 def detect_operation(input_path, output_path):
@@ -44,7 +96,8 @@ def filter_cells(adata, min_genes=200, max_genes=6000, max_pct_mt=15,
                  min_cells_per_gene=3, qc_plots_dir=None):
     """
     Filter low-quality cells and genes
-    
+    MEMORY EFFICIENT: Works with backed mode
+
     Parameters:
     -----------
     adata : AnnData
@@ -68,7 +121,11 @@ def filter_cells(adata, min_genes=200, max_genes=6000, max_pct_mt=15,
     logger.info("="*60)
     logger.info("QUALITY CONTROL AND FILTERING")
     logger.info("="*60)
+    
+    # Check if data is backed
+    is_backed = hasattr(adata, 'isbacked') and adata.isbacked
     logger.info(f"Input: {adata.n_obs:,} cells, {adata.n_vars:,} genes")
+    logger.info(f"Mode: {'BACKED (disk-based)' if is_backed else 'IN-MEMORY'}")
     
     # Calculate QC metrics if not already present
     if 'n_genes_by_counts' not in adata.obs.columns:
@@ -110,7 +167,15 @@ def filter_cells(adata, min_genes=200, max_genes=6000, max_pct_mt=15,
     mt_filter = adata.obs['pct_counts_mt'] <= max_pct_mt
     
     # Apply filters
-    adata = adata[gene_filter & mt_filter, :].copy()
+    if is_backed:
+        # For backed mode: select indices, then load to memory
+        logger.info("Converting to in-memory after filtering...")
+        cell_indices = np.where(gene_filter & mt_filter)[0]
+        adata = adata[cell_indices, :].to_memory()
+        logger.info("✓ Converted to in-memory mode")
+    else:
+        # For in-memory: direct filtering
+        adata = adata[gene_filter & mt_filter, :].copy()
     
     logger.info(f"  Cells passing filters: {adata.n_obs:,} ({100*adata.n_obs/n_cells_before:.1f}%)")
     logger.info(f"  Cells removed: {n_cells_before - adata.n_obs:,}")
@@ -130,6 +195,15 @@ def filter_cells(adata, min_genes=200, max_genes=6000, max_pct_mt=15,
     logger.info(f"Retention rate: {100*adata.n_obs/n_cells_before:.1f}% cells, "
                 f"{100*adata.n_vars/n_genes_before:.1f}% genes")
     
+    # Estimate memory usage
+    if hasattr(adata.X, 'data'):
+        # Sparse
+        mem_mb = (adata.X.data.nbytes + adata.X.indices.nbytes + adata.X.indptr.nbytes) / 1e6
+    else:
+        # Dense
+        mem_mb = adata.X.nbytes / 1e6
+    logger.info(f"Memory usage: ~{mem_mb:.1f} MB")
+    
     # Save QC plots if directory specified
     if qc_plots_dir:
         qc_plots_dir = Path(qc_plots_dir)
@@ -137,17 +211,20 @@ def filter_cells(adata, min_genes=200, max_genes=6000, max_pct_mt=15,
         
         logger.info(f"\nSaving QC plots to {qc_plots_dir}")
         
-        # Violin plots
-        sc.pl.violin(adata, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt'],
-                     jitter=0.4, multi_panel=True, save='_after_filter.png', show=False)
-        
-        # Scatter plots
-        sc.pl.scatter(adata, x='total_counts', y='n_genes_by_counts', 
-                      save='_counts_vs_genes.png', show=False)
-        sc.pl.scatter(adata, x='total_counts', y='pct_counts_mt',
-                      save='_counts_vs_mt.png', show=False)
-        
-        logger.info("✓ QC plots saved")
+        try:
+            # Violin plots
+            sc.pl.violin(adata, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt'],
+                         jitter=0.4, multi_panel=True, save='_after_filter.png', show=False)
+            
+            # Scatter plots
+            sc.pl.scatter(adata, x='total_counts', y='n_genes_by_counts', 
+                          save='_counts_vs_genes.png', show=False)
+            sc.pl.scatter(adata, x='total_counts', y='pct_counts_mt',
+                          save='_counts_vs_mt.png', show=False)
+            
+            logger.info("✓ QC plots saved")
+        except Exception as e:
+            logger.warning(f"Could not save QC plots: {e}")
     
     return adata
 
@@ -155,7 +232,7 @@ def filter_cells(adata, min_genes=200, max_genes=6000, max_pct_mt=15,
 def normalize_counts(adata, target_sum=1e4, log_transform=True, regress_out=None):
     """
     Normalize counts and optionally log-transform
-    
+
     Parameters:
     -----------
     adata : AnnData
@@ -219,7 +296,7 @@ def normalize_counts(adata, target_sum=1e4, log_transform=True, regress_out=None
 def scale_data(adata, max_value=10):
     """
     Scale data to unit variance and zero mean
-    
+
     Parameters:
     -----------
     adata : AnnData
@@ -235,11 +312,6 @@ def scale_data(adata, max_value=10):
     logger.info("="*60)
     logger.info("SCALING")
     logger.info("="*60)
-    
-    # Store pre-scaled data
-    if 'normalized' in adata.layers and 'scaled' not in adata.layers:
-        # Scaling will modify X, so we're good
-        pass
     
     # Scale
     logger.info(f"Scaling to zero mean, unit variance (max_value={max_value})...")
@@ -271,9 +343,9 @@ def main():
         logger.info(f"Input: {input_path}")
         logger.info(f"Output: {output_path}")
         
-        # Load data
+        # Load data with smart mode selection
         logger.info("\nLoading data...")
-        adata = sc.read_h5ad(input_path)
+        adata, is_backed = load_data_smart(input_path, max_ram_gb=8.0)
         logger.info(f"✓ Loaded: {adata.n_obs:,} cells, {adata.n_vars:,} genes")
         
         # Execute appropriate operation
