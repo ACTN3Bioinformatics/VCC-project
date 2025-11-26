@@ -406,7 +406,14 @@ def main():
         if download_needed and temp_h5ad != Path(output_h5ad):
             logger.info("\nCleaning up temporary files...")
             temp_h5ad.unlink(missing_ok=True)
+            
+        # Mark files as complete for Snakemake
+        for output_file in [output_h5ad, output_metadata]:
+            if Path(output_file).exists():
+                Path(output_file).touch()  # Update timestamp
         
+        logger.info("✓ Files marked as complete")
+
         # ================================================================
         # SUCCESS SUMMARY
         # ================================================================

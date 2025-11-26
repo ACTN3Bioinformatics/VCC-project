@@ -10,6 +10,7 @@ import pandas as pd
 import scanpy as sc
 from pathlib import Path
 import logging
+from scipy.sparse import issparse
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +184,7 @@ def get_memory_usage(adata):
     size_bytes = 0
     
     # X matrix
-    if hasattr(adata.X, 'data'):
+    if issparse(adata.X):    
         # Sparse matrix
         size_bytes += adata.X.data.nbytes + adata.X.indices.nbytes + adata.X.indptr.nbytes
     else:
@@ -192,7 +193,7 @@ def get_memory_usage(adata):
     
     # Layers
     for layer_name, layer_data in adata.layers.items():
-        if hasattr(layer_data, 'data'):
+        if issparse(layer_data):
             size_bytes += layer_data.data.nbytes + layer_data.indices.nbytes + layer_data.indptr.nbytes
         else:
             size_bytes += layer_data.nbytes

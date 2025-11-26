@@ -74,7 +74,9 @@ snakemake -n
 snakemake test --cores 1
 
 # Generate workflow visualization
-snakemake --dag | dot -Tpng > docs/workflow_diagram.png
+python scripts/generate_workflow_diagram.py
+# Creates: docs/workflow_diagram.png (if graphviz installed)
+#      or: docs/workflow_dag.txt (always works)
 ```
 
 ### Explore with Jupyter Notebook

@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 from pathlib import Path
+from scipy.sparse import issparse
 
 # Setup logging
 logging.basicConfig(
@@ -196,11 +197,11 @@ def filter_cells(adata, min_genes=200, max_genes=6000, max_pct_mt=15,
                 f"{100*adata.n_vars/n_genes_before:.1f}% genes")
     
     # Estimate memory usage
-    if hasattr(adata.X, 'data'):
-        # Sparse
+    if issparse(adata.X):
+        # Sparse matrix
         mem_mb = (adata.X.data.nbytes + adata.X.indices.nbytes + adata.X.indptr.nbytes) / 1e6
     else:
-        # Dense
+        # Dense array
         mem_mb = adata.X.nbytes / 1e6
     logger.info(f"Memory usage: ~{mem_mb:.1f} MB")
     
