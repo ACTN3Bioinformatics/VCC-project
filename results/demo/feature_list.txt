@@ -1,0 +1,56 @@
+EXTRACTED FEATURES
+============================================================
+
+- pathways
+- tf_targets
+- cell_signatures
+- gene_statistics
+
+VARM KEYS:
+------------------------------------------------------------
+  pathway_KEGG: (8563, 303)
+  pathway_Reactome: (8563, 1402)
+  pathway_GO_Biological_Process: (8563, 3449)
+
+VAR COLUMNS:
+------------------------------------------------------------
+  mean_expression
+  variance
+  dropout_rate
+  cv
+
+OBS COLUMNS:
+------------------------------------------------------------
+  batch
+  gene
+  gene_id
+  transcript
+  gene_transcript
+  guide_id
+  percent_mito
+  UMI_count
+  z_gemgroup_UMI
+  core_scale_factor
+  core_adjusted_UMI_count
+  disease
+  cancer
+  cell_line
+  sex
+  age
+  perturbation
+  organism
+  perturbation_type
+  tissue_type
+  ncounts
+  ngenes
+  nperts
+  percent_ribo
+  n_genes_by_counts
+  total_counts
+  total_counts_mt
+  pct_counts_mt
+  cell_cycle_G1S_score
+  cell_cycle_G2M_score
+  stress_score
+  apoptosis_score
+  proliferation_score

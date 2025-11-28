@@ -1,0 +1,172 @@
+============================================================
+CLASS BALANCING REPORT
+============================================================
+
+SUMMARY
+------------------------------------------------------------
+Perturbations before: 150
+Perturbations after:  150
+Removed:              0
+
+Cells before:         9,283
+Cells after:          7,810
+Retention:            84.1%
+
+Downsampled:          3 perturbations
+Kept unchanged:       147 perturbations
+
+
+PER-PERTURBATION DETAILS
+------------------------------------------------------------
+Perturbation                     Original      Final          Action
+------------------------------------------------------------
+ZMAT2                                  59         59            kept
+SLC39A9                                98         98            kept
+NUF2                                   53         53            kept
+SSRP1                                  63         63            kept
+PRODH                                  46         46            kept
+NRDE2                                  54         54            kept
+DPH1                                   48         48            kept
+RPA1                                   63         63            kept
+SF3A2                                  44         44            kept
+DDX47                                  35         35            kept
+RPL3                                  252        100     downsampled
+non-targeting                        1403        100     downsampled
+LTV1                                   43         43            kept
+SON                                    65         65            kept
+MED19                                  51         51            kept
+BUB1                                   89         89            kept
+NCBP2                                 100        100            kept
+RPL34                                  53         53            kept
+EGLN2                                  49         49            kept
+SUPT5H                                 37         37            kept
+PCID2                                  57         57            kept
+RPL30                                  46         46            kept
+CCNK                                   37         37            kept
+TIMM23B                                72         72            kept
+MED12                                  68         68            kept
+PSMB7                                  45         45            kept
+ANAPC15                                57         57            kept
+GPS1                                   60         60            kept
+CNOT3                                  38         38            kept
+TSR2                                   73         73            kept
+RPL37                                  51         51            kept
+INTS2                                  52         52            kept
+NAA38                                  37         37            kept
+EIF4E                                  37         37            kept
+MZT1                                   57         57            kept
+EIF2B2                                 41         41            kept
+TRRAP                                  44         44            kept
+GAB2                                   78         78            kept
+SNRPG                                  68         68            kept
+EEF2                                   41         41            kept
+KIF11                                 118        100     downsampled
+CDC27                                  50         50            kept
+RPL13                                  39         39            kept
+ATP6V1B2                               44         44            kept
+GTF2H1                                 36         36            kept
+DNAJC19                                58         58            kept
+RPL8                                   49         49            kept
+SF3A1                                  38         38            kept
+CHMP6                                  86         86            kept
+FAM32A                                 45         45            kept
+CACNB3                                 37         37            kept
+RPL24                                  68         68            kept
+RPL37A                                 64         64            kept
+PSMG3                                  65         65            kept
+PMPCB                                  76         76            kept
+NUP107                                 47         47            kept
+RPS12                                  75         75            kept
+DLD                                    38         38            kept
+WBP11                                  32         32            kept
+BCR                                    56         56            kept
+PSMC2                                  55         55            kept
+HSPA5                                  51         51            kept
+INTS8                                  38         38            kept
+OXA1L                                  51         51            kept
+KRR1                                   55         55            kept
+LSM6                                   74         74            kept
+PSTK                                   63         63            kept
+BUB3                                   70         70            kept
+PSMD7                                  58         58            kept
+ESPN                                   57         57            kept
+PSMA4                                  56         56            kept
+SRSF11                                 62         62            kept
+NUP205                                 86         86            kept
+ALYREF                                 41         41            kept
+RPL11                                  43         43            kept
+PHB2                                   33         33            kept
+ORC1                                   70         70            kept
+SNX15                                  75         75            kept
+DHX15                                  40         40            kept
+POLR2B                                 26         26            kept
+RIOK1                                  47         47            kept
+CDK1                                   40         40            kept
+HNRNPC                                 39         39            kept
+RPL18                                  46         46            kept
+SF3B3                                  40         40            kept
+LSM2                                   41         41            kept
+PSMA3                                  51         51            kept
+MED10                                  57         57            kept
+ABCF1                                  60         60            kept
+SIN3A                                  42         42            kept
+POLR2A                                 44         44            kept
+LIN54                                  44         44            kept
+CSE1L                                  52         52            kept
+RPL4                                   52         52            kept
+RPS15A                                 34         34            kept
+ARGLU1                                 70         70            kept
+SART1                                  34         34            kept
+VPS54                                  39         39            kept
+CADM4                                  47         47            kept
+CPSF3                                  49         49            kept
+SMC4                                   53         53            kept
+PSMD6                                  64         64            kept
+PPP2R1A                                62         62            kept
+PHAX                                   55         55            kept
+DONSON                                 78         78            kept
+NUP98                                  74         74            kept
+RRM2                                   60         60            kept
+WDR4                                   47         47            kept
+TPX2                                   45         45            kept
+VPS41                                  52         52            kept
+SLC1A5                                 56         56            kept
+PCF11                                  64         64            kept
+RPL23                                  54         54            kept
+EIF4G1                                 42         42            kept
+KRT8                                   53         53            kept
+BDP1                                   39         39            kept
+FBXO5                                  43         43            kept
+RPS19                                  64         64            kept
+CKAP5                                  36         36            kept
+NLE1                                   58         58            kept
+POLR2F                                 29         29            kept
+HIRA                                   41         41            kept
+RARS                                   62         62            kept
+SMN2                                   47         47            kept
+SRRT                                   29         29            kept
+GNL2                                   47         47            kept
+EIF2B4                                 43         43            kept
+HSPA9                                  44         44            kept
+EIF3H                                  51         51            kept
+RPS28                                  38         38            kept
+ARCN1                                  41         41            kept
+WDR3                                   38         38            kept
+ZNF718                                 38         38            kept
+QARS                                   44         44            kept
+UQCRC1                                 34         34            kept
+ZNF574                                 44         44            kept
+EIF4G2                                 38         38            kept
+NACA                                   48         48            kept
+EIF3A                                  36         36            kept
+RPS29                                  53         53            kept
+SF3B2                                  53         53            kept
+PSMD4                                  32         32            kept
+SLC7A5                                 43         43            kept
+DHX16                                  33         33            kept
+ICE1                                   55         55            kept
+EIF2B5                                 49         49            kept
+KPNB1                                  47         47            kept
+PSMC1                                  49         49            kept
+COG2                                   38         38            kept
+RPAP2                                  23         23            kept
