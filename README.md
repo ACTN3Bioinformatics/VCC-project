@@ -220,7 +220,7 @@ See [docs/PIPELINE_GUIDE.md#configuration](docs/PIPELINE_GUIDE.md#configuration)
 -   [**Pipeline Guide**](docs/PIPELINE_GUIDE.md) - Complete pipeline documentation
 -   [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Common issues and solutions
 -   [**Demo Notebook**](notebooks/demo_exploration.ipynb) - Interactive demo data exploration
--   [**Demo Report**](docs/demo_report.html) - HTML report for demo data
+-   [**Demo Report**](notebooks/demo_exploration.html) - HTML report for demo data
 -   [**Contributing Guide**](CONTRIBUTING.md) - How to contribute
 
 ## 📓 Jupyter Notebooks
