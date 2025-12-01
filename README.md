@@ -8,6 +8,8 @@ A reproducible computational pipeline for processing and analyzing single-cell R
 
 This pipeline transforms raw single-cell RNA-seq data with genetic perturbations into high-quality, balanced datasets suitable for training ML/AI models to predict perturbation effects. It supports multiple dataset types and provides comprehensive quality control, normalization, and integration capabilities.
 
+[Pipeline report for the demo data.](https://actn3bioinformatics.github.io/VCC-project/)
+
 ### Key Features
 
 -   **🔄 Automated Workflow**: Snakemake-based pipeline with dependency management
@@ -220,7 +222,7 @@ See [docs/PIPELINE_GUIDE.md#configuration](docs/PIPELINE_GUIDE.md#configuration)
 -   [**Pipeline Guide**](docs/PIPELINE_GUIDE.md) - Complete pipeline documentation
 -   [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Common issues and solutions
 -   [**Demo Notebook**](notebooks/demo_exploration.ipynb) - Interactive demo data exploration
--   [**Demo Report**](docs/demo_exploration.html) - HTML version of the report for the demo data
+-   [**Demo Report**](https://actn3bioinformatics.github.io/VCC-project/) - HTML version of the report for the demo data
 -   [**Contributing Guide**](CONTRIBUTING.md) - How to contribute
 
 ## 📓 Jupyter Notebooks
