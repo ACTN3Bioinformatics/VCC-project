@@ -220,7 +220,7 @@ See [docs/PIPELINE_GUIDE.md#configuration](docs/PIPELINE_GUIDE.md#configuration)
 -   [**Pipeline Guide**](docs/PIPELINE_GUIDE.md) - Complete pipeline documentation
 -   [**Troubleshooting**](docs/TROUBLESHOOTING.md) - Common issues and solutions
 -   [**Demo Notebook**](notebooks/demo_exploration.ipynb) - Interactive demo data exploration
--   [**Demo Report**](notebooks/demo_exploration.html) - HTML report for demo data
+-   [**Demo Report**](docs/demo_exploration.html) - HTML version of the report for the demo data
 -   [**Contributing Guide**](CONTRIBUTING.md) - How to contribute
 
 ## 📓 Jupyter Notebooks
@@ -273,7 +273,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## 👤 Author
 
-### Szymon Myrta (kontakt@actn3.pl)
+### Szymon Myrta (kontakt\@actn3.pl)
+
+**Bioinformatics Specialist \| R Programmer \| Data Scientist**
+
+[**Open to collaboration!**]{.underline}
 
 I'm passionate about applying data science and bioinformatics to advance pharmaceutical research and precision medicine. This repository reflects my commitment to continuous learning, knowledge sharing, and contributing to the open-source R community in pharma.
 
