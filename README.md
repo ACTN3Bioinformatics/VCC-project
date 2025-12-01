@@ -277,7 +277,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 **Bioinformatics Specialist \| R Programmer \| Data Scientist**
 
-[**Open to collaboration!**]{.underline}
+<ins>**Open to collaboration!**</ins>
 
 I'm passionate about applying data science and bioinformatics to advance pharmaceutical research and precision medicine. This repository reflects my commitment to continuous learning, knowledge sharing, and contributing to the open-source R community in pharma.
 
@@ -290,6 +290,8 @@ I'm passionate about applying data science and bioinformatics to advance pharmac
 -   Background in computational biology, cancer genomics, immuno-oncology
 -   Co-author of multiple peer-reviewed scientific publications in top-tier journals
 -   **Interested in multi-omics data integration, precision medicine, AI-powered analyses**
+
+Feel free to reach out for project ideas, consulting, or joint research in bioinformatics and data science.
 
 ## 📝 Citation
 
